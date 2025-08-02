@@ -10,7 +10,7 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center space-x-4">
-            {/* 1inch Logo - Much bigger */}
+            {/* 1inch Logo */}
             <img
               src="/logos/1inch_color_white.svg"
               alt="1inch"
@@ -19,7 +19,7 @@ const Header: React.FC = () => {
             />
             <span className="text-gray-400 text-2xl mx-3">|</span>
             <span className="text-2xl text-gray-400 font-medium">
-              Stop-Loss Pro
+              Blitz Pro
             </span>
           </div>
 
