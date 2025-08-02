@@ -1,0 +1,33 @@
+/* src/App.css */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Add glow effect to cards */
+.card {
+  backdrop-filter: blur(10px);
+  background: rgba(17, 24, 39, 0.8) !important;
+}
+
+/* Glassmorphism effect for order creator */
+.card:hover {
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.1);
+}

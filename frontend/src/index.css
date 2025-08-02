@@ -1,0 +1,40 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-blue-500 hover:bg-blue-400 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20;
+  }
+
+  .btn-stop {
+    @apply bg-red-500 hover:bg-red-400 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20;
+  }
+
+  .btn-profit {
+    @apply bg-green-500 hover:bg-green-400 text-white font-semibold py-3 px-6 rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20;
+  }
+
+  .card {
+    @apply bg-gray-900 rounded-3xl p-6 border border-gray-800 shadow-xl;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all;
+  }
+
+  .tab-active {
+    @apply text-white border-b-2 border-blue-500;
+  }
+
+  .tab-inactive {
+    @apply text-gray-400 hover:text-gray-200 border-b-2 border-transparent;
+  }
+}
