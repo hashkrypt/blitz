@@ -1,4 +1,3 @@
-// src/components/OrderCreator.tsx - Complete version with all chains
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { useWallet } from "../hooks/useWallet";
@@ -7,146 +6,48 @@ import { useStopLoss } from "../hooks/useStopLoss";
 type OrderType = "stop-loss" | "take-profit" | "both";
 
 const OrderCreator: React.FC = () => {
-  const { address, signer, connectWallet, isConnected } = useWallet();
+  const { signer, isConnected } = useWallet();
   const { createStopLossOrder, isLoading } = useStopLoss();
 
   const [orderType, setOrderType] = useState<OrderType>("both");
-  const [fromChain, setFromChain] = useState("ethereum");
+  const [fromChain, setFromChain] = useState("polygon");
   const [toChain, setToChain] = useState("polygon");
-  const [fromToken, setFromToken] = useState("ETH");
+  const [fromToken, setFromToken] = useState("MATIC");
   const [toToken, setToToken] = useState("USDC");
   const [amount, setAmount] = useState("");
   const [stopPrice, setStopPrice] = useState("");
   const [profitPrice, setProfitPrice] = useState("");
 
-  // All chains from 1inch hackathon + existing ones
+  // All chains
   const chains = [
-    // Existing 1inch chains
-    { id: "ethereum", name: "Ethereum", icon: "⟠", color: "blue" },
-    { id: "bsc", name: "BSC", icon: "🟡", color: "yellow" },
-    { id: "polygon", name: "Polygon", icon: "🟣", color: "purple" },
-    { id: "optimism", name: "Optimism", icon: "🔴", color: "red" },
-    { id: "arbitrum", name: "Arbitrum", icon: "🔵", color: "blue" },
-    { id: "avalanche", name: "Avalanche", icon: "🔺", color: "red" },
-    { id: "gnosis", name: "Gnosis", icon: "🦉", color: "green" },
-    { id: "fantom", name: "Fantom", icon: "👻", color: "blue" },
-    { id: "base", name: "Base", icon: "🔷", color: "blue" },
-    { id: "zksync", name: "zkSync Era", icon: "⚡", color: "purple" },
-
-    // Priority Fusion+ chains
-    { id: "aptos", name: "Aptos", icon: "🚀", color: "teal" },
-    { id: "bitcoin", name: "Bitcoin", icon: "₿", color: "orange" },
-    { id: "cosmos", name: "Cosmos", icon: "🌌", color: "purple" },
-    { id: "near", name: "NEAR", icon: "🌐", color: "green" },
-    { id: "sui", name: "Sui", icon: "🌊", color: "blue" },
-    { id: "tron", name: "Tron", icon: "⚡", color: "red" },
-    { id: "stellar", name: "Stellar", icon: "💫", color: "blue" },
-
-    // Standard Fusion+ chains
-    { id: "ton", name: "TON", icon: "💎", color: "blue" },
-    { id: "monad", name: "Monad", icon: "🏎️", color: "purple" },
-    { id: "starknet", name: "Starknet", icon: "🛡️", color: "orange" },
-    { id: "cardano", name: "Cardano", icon: "🔷", color: "blue" },
-    { id: "xrp", name: "XRP Ledger", icon: "🏛️", color: "gray" },
-    { id: "icp", name: "ICP", icon: "🖥️", color: "purple" },
-    { id: "tezos", name: "Tezos", icon: "🗳️", color: "blue" },
-    { id: "polkadot", name: "Polkadot", icon: "🔴", color: "pink" },
-    { id: "eos", name: "EOS", icon: "🌍", color: "gray" },
-    { id: "dogecoin", name: "Dogecoin", icon: "🐕", color: "yellow" },
-    { id: "litecoin", name: "Litecoin", icon: "Ł", color: "gray" },
+    { id: "polygon", name: "Polygon", icon: "🟣" },
+    { id: "ethereum", name: "Ethereum", icon: "⟠" },
+    { id: "bsc", name: "BSC", icon: "🟡" },
+    { id: "arbitrum", name: "Arbitrum", icon: "🔵" },
+    { id: "optimism", name: "Optimism", icon: "🔴" },
+    { id: "avalanche", name: "Avalanche", icon: "🔺" },
   ];
 
-  // Chain-specific tokens
-  const tokensByChain: {
-    [key: string]: Array<{ symbol: string; name: string; price: number }>;
-  } = {
-    ethereum: [
-      { symbol: "ETH", name: "Ethereum", price: 2150 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-      { symbol: "USDT", name: "Tether", price: 1.0 },
-      { symbol: "DAI", name: "DAI", price: 1.0 },
-      { symbol: "WBTC", name: "Wrapped Bitcoin", price: 43250 },
-      { symbol: "1INCH", name: "1inch", price: 0.42 },
-      { symbol: "LINK", name: "Chainlink", price: 14.5 },
-      { symbol: "UNI", name: "Uniswap", price: 6.25 },
-      { symbol: "AAVE", name: "Aave", price: 92.3 },
-    ],
-    polygon: [
-      { symbol: "MATIC", name: "Polygon", price: 0.89 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-      { symbol: "USDT", name: "Tether", price: 1.0 },
-      { symbol: "DAI", name: "DAI", price: 1.0 },
-      { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
-      { symbol: "1INCH", name: "1inch", price: 0.42 },
-    ],
-    bsc: [
-      { symbol: "BNB", name: "BNB", price: 312 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-      { symbol: "BUSD", name: "Binance USD", price: 1.0 },
-      { symbol: "CAKE", name: "PancakeSwap", price: 2.45 },
-    ],
-    arbitrum: [
-      { symbol: "ETH", name: "Ethereum", price: 2150 },
-      { symbol: "ARB", name: "Arbitrum", price: 1.12 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-      { symbol: "GMX", name: "GMX", price: 45.2 },
-    ],
-    near: [
-      { symbol: "NEAR", name: "NEAR Protocol", price: 3.45 },
-      { symbol: "AURORA", name: "Aurora", price: 0.15 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    ],
-    aptos: [
-      { symbol: "APT", name: "Aptos", price: 8.9 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    ],
-    sui: [
-      { symbol: "SUI", name: "Sui", price: 1.23 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    ],
-    cosmos: [
-      { symbol: "ATOM", name: "Cosmos", price: 9.8 },
-      { symbol: "OSMO", name: "Osmosis", price: 0.82 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    ],
-    bitcoin: [{ symbol: "BTC", name: "Bitcoin", price: 43250 }],
-    // Default tokens for chains without specific lists
-    default: [
-      { symbol: "NATIVE", name: "Native Token", price: 100 },
-      { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    ],
-  };
+  // Token list
+  const tokens = [
+    { symbol: "MATIC", name: "Polygon", price: 0.89 },
+    { symbol: "USDC", name: "USD Coin", price: 1.0 },
+    { symbol: "USDT", name: "Tether", price: 1.0 },
+    { symbol: "DAI", name: "DAI", price: 1.0 },
+    { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
+    { symbol: "WBTC", name: "Wrapped BTC", price: 43250 },
+    { symbol: "1INCH", name: "1inch", price: 0.42 },
+  ];
 
-  // Get tokens for selected chain
-  const fromTokens = tokensByChain[fromChain] || tokensByChain.default;
-  const toTokens = tokensByChain[toChain] || tokensByChain.default;
-
-  // Update token selection when chain changes
-  React.useEffect(() => {
-    const newFromTokens = tokensByChain[fromChain] || tokensByChain.default;
-    if (!newFromTokens.find((t) => t.symbol === fromToken)) {
-      setFromToken(newFromTokens[0].symbol);
-    }
-  }, [fromChain]);
-
-  React.useEffect(() => {
-    const newToTokens = tokensByChain[toChain] || tokensByChain.default;
-    if (!newToTokens.find((t) => t.symbol === toToken)) {
-      setToToken(newToTokens[0].symbol);
-    }
-  }, [toChain]);
-
-  const fromTokenData =
-    fromTokens.find((t) => t.symbol === fromToken) || fromTokens[0];
-  const toTokenData = toTokens.find((t) => t.symbol === toToken) || toTokens[0];
+  const fromTokenData = tokens.find((t) => t.symbol === fromToken) || tokens[0];
+  const toTokenData = tokens.find((t) => t.symbol === toToken) || tokens[1];
   const currentRate = fromTokenData.price / toTokenData.price;
   const currentOutput = parseFloat(amount || "0") * currentRate;
 
   const handleSwapTokens = () => {
+    const tempToken = fromToken;
     setFromToken(toToken);
-    setToToken(fromToken);
-    setFromChain(toChain);
-    setToChain(fromChain);
+    setToToken(tempToken);
   };
 
   const handleCreateOrder = async () => {
@@ -163,8 +64,55 @@ const OrderCreator: React.FC = () => {
     const loadingToast = toast.loading("Creating order...");
 
     try {
-      // Implementation here
-      toast.success("Order created successfully! 🎉", { id: loadingToast });
+      if (orderType === "stop-loss" || orderType === "both") {
+        if (!stopPrice) {
+          toast.error("Please enter a stop-loss price", { id: loadingToast });
+          return;
+        }
+
+        // Map MATIC to WMATIC for the service
+        let tokenForService = fromToken;
+        if (fromToken === "MATIC") {
+          tokenForService = "WMATIC";
+        }
+
+        const result = await createStopLossOrder({
+          token: tokenForService,
+          amount,
+          stopPrice: parseFloat(stopPrice),
+          signer,
+        });
+
+        // Save to localStorage
+        const orders = JSON.parse(
+          localStorage.getItem("stopLossOrders") || "[]"
+        );
+        orders.push({
+          id: result.orderHash || Date.now().toString(),
+          fromToken,
+          toToken,
+          amount,
+          type: "stop-loss",
+          triggerPrice: stopPrice,
+          status: "active",
+          createdAt: new Date().toISOString(),
+        });
+        localStorage.setItem("stopLossOrders", JSON.stringify(orders));
+
+        toast.success("Stop-loss order created! 🎉", { id: loadingToast });
+      }
+
+      if (orderType === "take-profit" || orderType === "both") {
+        toast("Take-profit orders coming soon! 🚀", {
+          id: orderType === "both" ? undefined : loadingToast,
+          icon: "🚧",
+        });
+      }
+
+      // Reset form
+      setAmount("");
+      setStopPrice("");
+      setProfitPrice("");
     } catch (error: any) {
       toast.error(error.message || "Failed to create order", {
         id: loadingToast,
@@ -174,9 +122,11 @@ const OrderCreator: React.FC = () => {
 
   return (
     <div className="card max-w-xl mx-auto">
-      <h2 className="text-xl font-bold mb-3 text-center">Blitz Order Pro</h2>
+      <h2 className="text-xl font-bold mb-3 text-center">
+        Stop-Loss/Take-Profit Strategy
+      </h2>
 
-      {/* Order Type Selection - Compact */}
+      {/* Order Type Selection */}
       <div className="grid grid-cols-3 gap-2 mb-3">
         <button
           onClick={() => setOrderType("stop-loss")}
@@ -224,7 +174,7 @@ const OrderCreator: React.FC = () => {
             <select
               value={fromChain}
               onChange={(e) => setFromChain(e.target.value)}
-              className="bg-gray-700 rounded px-2 py-0.5 text-xs max-w-[140px]"
+              className="bg-gray-700 rounded px-2 py-0.5 text-xs"
             >
               {chains.map((chain) => (
                 <option key={chain.id} value={chain.id}>
@@ -246,12 +196,15 @@ const OrderCreator: React.FC = () => {
               onChange={(e) => setFromToken(e.target.value)}
               className="bg-gray-700 rounded px-2 py-1 text-sm font-semibold"
             >
-              {fromTokens.map((t) => (
+              {tokens.map((t) => (
                 <option key={t.symbol} value={t.symbol}>
                   {t.symbol}
                 </option>
               ))}
             </select>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            ≈ ${(parseFloat(amount || "0") * fromTokenData.price).toFixed(2)}
           </div>
         </div>
 
@@ -284,7 +237,7 @@ const OrderCreator: React.FC = () => {
             <select
               value={toChain}
               onChange={(e) => setToChain(e.target.value)}
-              className="bg-gray-700 rounded px-2 py-0.5 text-xs max-w-[140px]"
+              className="bg-gray-700 rounded px-2 py-0.5 text-xs"
             >
               {chains.map((chain) => (
                 <option key={chain.id} value={chain.id}>
@@ -305,12 +258,15 @@ const OrderCreator: React.FC = () => {
               onChange={(e) => setToToken(e.target.value)}
               className="bg-gray-700 rounded px-2 py-1 text-sm font-semibold"
             >
-              {toTokens.map((t) => (
+              {tokens.map((t) => (
                 <option key={t.symbol} value={t.symbol}>
                   {t.symbol}
                 </option>
               ))}
             </select>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Current rate: 1 {fromToken} = {currentRate.toFixed(4)} {toToken}
           </div>
         </div>
 
@@ -366,7 +322,7 @@ const OrderCreator: React.FC = () => {
             : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/30"
         }`}
       >
-        {isLoading ? "Creating Order..." : "Create Blitz Order"}
+        {isLoading ? "Creating Order..." : "Create Protection Order"}
       </button>
     </div>
   );

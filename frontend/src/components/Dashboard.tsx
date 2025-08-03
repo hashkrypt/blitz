@@ -1,22 +1,20 @@
-// src/components/Dashboard.tsx
 import React, { useState } from "react";
 import OrderCreator from "./OrderCreator";
 import ActiveOrders from "./ActiveOrders";
 import PortfolioStats from "./PortfolioStats";
 import OneInchDashboard from "./OneInchDashboard";
+import TWAPStrategy from "./TWAPStrategy";
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"create" | "manage" | "analytics">(
-    "create"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "create" | "twap" | "manage" | "dashboard"
+  >("create");
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <PortfolioStats />
 
-      {/* Centered content */}
       <div className="flex flex-col items-center">
-        {/* Tab switcher */}
         <div className="bg-gray-900 rounded-2xl p-1 mb-6 inline-flex">
           <button
             onClick={() => setActiveTab("create")}
@@ -26,7 +24,17 @@ const Dashboard: React.FC = () => {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Create Order
+            Stop-Loss/Take-Profit
+          </button>
+          <button
+            onClick={() => setActiveTab("twap")}
+            className={`py-2 px-6 rounded-2xl text-sm font-medium transition-all ${
+              activeTab === "twap"
+                ? "bg-gray-800 text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            TWAP
           </button>
           <button
             onClick={() => setActiveTab("manage")}
@@ -39,9 +47,9 @@ const Dashboard: React.FC = () => {
             Active Orders
           </button>
           <button
-            onClick={() => setActiveTab("analytics")}
+            onClick={() => setActiveTab("dashboard")}
             className={`py-2 px-6 rounded-2xl text-sm font-medium transition-all ${
-              activeTab === "analytics"
+              activeTab === "dashboard"
                 ? "bg-gray-800 text-white"
                 : "text-gray-400 hover:text-white"
             }`}
@@ -50,13 +58,17 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Content area */}
         <div
-          className={activeTab === "analytics" ? "w-full" : "w-full max-w-2xl"}
+          className={
+            activeTab === "dashboard" || activeTab === "twap"
+              ? "w-full"
+              : "w-full max-w-2xl"
+          }
         >
           {activeTab === "create" && <OrderCreator />}
+          {activeTab === "twap" && <TWAPStrategy />}
           {activeTab === "manage" && <ActiveOrders />}
-          {activeTab === "analytics" && <OneInchDashboard />}
+          {activeTab === "dashboard" && <OneInchDashboard />}
         </div>
       </div>
     </main>

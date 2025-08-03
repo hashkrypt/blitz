@@ -1,73 +1,86 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 
+interface Order {
+  id: string;
+  fromToken: string;
+  toToken: string;
+  amount: string;
+  type: "stop-loss" | "take-profit";
+  triggerPrice: string;
+  status: string;
+  createdAt: string;
+}
+
 const ActiveOrders: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const loadOrders = () => {
-      const saved = localStorage.getItem("stopLossOrders");
-      if (saved) {
-        setOrders(JSON.parse(saved));
-      }
-    };
-
     loadOrders();
-    const interval = setInterval(loadOrders, 2000);
-    return () => clearInterval(interval);
   }, []);
 
+  const loadOrders = () => {
+    const savedOrders = localStorage.getItem("stopLossOrders");
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
+    }
+  };
+
   const cancelOrder = (orderId: string) => {
-    const updated = orders.filter((o) => o.id !== orderId);
-    localStorage.setItem("stopLossOrders", JSON.stringify(updated));
-    setOrders(updated);
+    const updatedOrders = orders.filter((order) => order.id !== orderId);
+    localStorage.setItem("stopLossOrders", JSON.stringify(updatedOrders));
+    setOrders(updatedOrders);
     toast.success("Order cancelled");
   };
 
+  if (orders.length === 0) {
+    return (
+      <div className="card text-center py-12">
+        <div className="text-6xl mb-4">📭</div>
+        <h3 className="text-xl font-bold mb-2">No Active Orders</h3>
+        <p className="text-gray-400">
+          Create your first stop-loss order to protect your assets
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="card">
-      <h2 className="text-2xl font-bold mb-6">Active Orders</h2>
-
-      {orders.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-400 mb-4">No active orders</p>
-          <p className="text-sm text-gray-500">
-            Create your first protection order above
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="bg-gray-800 rounded-2xl p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center space-x-4">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    order.type === "stop-loss" ? "bg-red-500" : "bg-green-500"
-                  }`}
-                ></div>
-                <div>
-                  <p className="font-semibold">
-                    {order.amount} {order.token}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {order.type === "stop-loss" ? "Stop at" : "Take profit at"}{" "}
-                    ${order.triggerPrice}
-                  </p>
+      <h2 className="text-xl font-bold mb-4">Active Orders</h2>
+      <div className="space-y-3">
+        {orders.map((order) => (
+          <div key={order.id} className="bg-gray-800 rounded-xl p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center space-x-2 mb-2">
+                  <span
+                    className={`text-xl ${
+                      order.type === "stop-loss" ? "🔴" : "🟢"
+                    }`}
+                  ></span>
+                  <span className="font-semibold">
+                    {order.amount} {order.fromToken} → {order.toToken}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  Trigger: {order.triggerPrice} {order.fromToken}/
+                  {order.toToken}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Created: {new Date(order.createdAt).toLocaleDateString()}
                 </div>
               </div>
               <button
                 onClick={() => cancelOrder(order.id)}
-                className="text-red-400 hover:text-red-300"
+                className="text-red-400 hover:text-red-300 text-sm"
               >
                 Cancel
               </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

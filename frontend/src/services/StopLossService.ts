@@ -1,78 +1,154 @@
-// frontend/src/services/StopLossService.ts
+// src/services/StopLossService.ts
 import { ethers } from "ethers";
 
-// Define types directly since SDK might have issues
-interface OrderData {
-  salt: string;
-  maker: string;
-  receiver: string;
-  makerAsset: string;
-  takerAsset: string;
-  makingAmount: string;
-  takingAmount: string;
-  makerTraits: string;
+interface StopLossOrder {
+  token: string;
+  amount: string;
+  stopPrice: number;
+  orderHash?: string;
+  signature?: string;
 }
 
 export class StopLossService {
-  private provider: ethers.providers.JsonRpcProvider;
-  private chainId = 137; // Polygon
+  // 1inch Limit Order Protocol V4 contract on Polygon
+  protected limitOrderContract = "0x94Bc2a1C732BcAd7343B25af48385Fe76E08734f";
 
-  // Contract addresses
-  private LIMIT_ORDER_CONTRACT = "0x111111125421ca6dc452d289314280a0f8842a65";
-  private WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
-  private USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
-
-  constructor() {
-    this.provider = new ethers.providers.JsonRpcProvider(
-      "https://polygon-rpc.com"
-    );
-  }
+  // Token addresses on Polygon
+  protected tokenAddresses: { [key: string]: string } = {
+    WMATIC: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+    USDC: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    DAI: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+    WETH: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+    WBTC: "0x1bfd67037b42cf73acF2047067bd4F2C47D9BfD6",
+    "1INCH": "0x9c2C5fd7b07E95EE044DDeba0E97a665F142394f",
+  };
 
   async createStopLossOrder(params: {
+    token: string;
+    amount: string;
+    stopPrice: number;
     signer: ethers.Signer;
+  }): Promise<StopLossOrder> {
+    const { token, amount, stopPrice, signer } = params;
+
+    try {
+      // Get wallet address
+      const walletAddress = await signer.getAddress();
+
+      // Get token addresses
+      const tokenIn = this.tokenAddresses[token] || token;
+      const tokenOut = this.tokenAddresses["USDC"]; // Default to USDC as stable
+
+      // Create the limit order
+      const order = await this.createLimitOrder({
+        signer,
+        maker: walletAddress,
+        tokenIn,
+        tokenOut,
+        amountIn: amount,
+        stopPrice,
+      });
+
+      return {
+        token,
+        amount,
+        stopPrice,
+        orderHash: order.orderHash,
+        signature: order.signature,
+      };
+    } catch (error) {
+      console.error("Error creating stop-loss order:", error);
+      throw error;
+    }
+  }
+
+  protected async createLimitOrder(params: {
+    signer: ethers.Signer;
+    maker: string;
     tokenIn: string;
     tokenOut: string;
-    amount: string;
-    triggerPrice: number;
+    amountIn: string;
+    stopPrice: number;
   }) {
-    const { signer, tokenIn, tokenOut, amount, triggerPrice } = params;
-    const walletAddress = await signer.getAddress();
+    const { signer, maker, tokenIn, tokenOut, amountIn, stopPrice } = params;
 
-    // Generate salt and nonce
+    // Generate random salt
     const salt = Math.floor(Math.random() * 1000000000).toString();
-    const expiration = Math.floor(Date.now() / 1000) + 86400 * 30; // 30 days
+
+    // Calculate maker traits (simplified)
+    const makerTraits = this.encodeMakerTraits({
+      allowPartialFill: true,
+      shouldCheckEpoch: false,
+      usePermit2: false,
+      isMakerContract: false,
+    });
 
     // Calculate amounts
-    const makingAmount = ethers.utils.parseEther(amount);
-    const takingAmount = ethers.utils.parseUnits(
-      (parseFloat(amount) * triggerPrice).toString(),
-      6 // USDC decimals
-    );
+    const makingAmount = ethers.utils.parseEther(amountIn).toString();
+    const takingAmount = this.calculateTakingAmount(amountIn, stopPrice);
 
-    // Create maker traits (packed uint256)
-    // For now, just use expiration in the traits
-    const makerTraits = expiration.toString();
-
-    // Create the order object
-    const order: OrderData = {
+    // Create order struct
+    const order = {
       salt: salt,
-      maker: walletAddress,
-      receiver: "0x0000000000000000000000000000000000000000",
+      maker: maker,
+      receiver: "0x0000000000000000000000000000000000000000", // Zero address means maker receives
       makerAsset: tokenIn,
       takerAsset: tokenOut,
-      makingAmount: makingAmount.toString(),
-      takingAmount: takingAmount.toString(),
+      makingAmount: makingAmount,
+      takingAmount: takingAmount,
       makerTraits: makerTraits,
     };
 
-    // Create EIP-712 domain
+    // Sign the order
+    const signature = await this.signLimitOrder(signer, order);
+
+    // Calculate order hash
+    const orderHash = await this.calculateOrderHash(order);
+
+    return {
+      order,
+      signature,
+      orderHash,
+    };
+  }
+
+  protected encodeMakerTraits(traits: {
+    allowPartialFill: boolean;
+    shouldCheckEpoch: boolean;
+    usePermit2: boolean;
+    isMakerContract: boolean;
+  }): string {
+    // Encode traits into uint256
+    let encoded = BigInt(0);
+
+    if (traits.allowPartialFill) encoded |= BigInt(1) << BigInt(255);
+    if (traits.shouldCheckEpoch) encoded |= BigInt(1) << BigInt(254);
+    if (traits.usePermit2) encoded |= BigInt(1) << BigInt(253);
+    if (traits.isMakerContract) encoded |= BigInt(1) << BigInt(252);
+
+    return encoded.toString();
+  }
+
+  protected calculateTakingAmount(amountIn: string, stopPrice: number): string {
+    // Calculate the USDC amount based on stop price
+    const usdcAmount = parseFloat(amountIn) * stopPrice;
+    return ethers.utils.parseUnits(usdcAmount.toString(), 6).toString();
+  }
+
+  protected async signLimitOrder(
+    signer: ethers.Signer,
+    order: any
+  ): Promise<string> {
+    // EIP-712 Domain
     const domain = {
       name: "1inch Limit Order Protocol",
       version: "4",
-      chainId: this.chainId,
-      verifyingContract: this.LIMIT_ORDER_CONTRACT,
+      chainId: 137, // Polygon
+      verifyingContract: this.limitOrderContract,
     };
 
+    // EIP-712 Types
     const types = {
       Order: [
         { name: "salt", type: "uint256" },
@@ -87,81 +163,50 @@ export class StopLossService {
     };
 
     try {
-      // Try using the standard signTypedData method
-      let signature: string;
-
-      // Check if we're using MetaMask
-      if (window.ethereum) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const msgParams = {
-          domain,
-          primaryType: "Order",
-          types,
-          message: order,
-        };
-
-        // Use eth_signTypedData_v4
-        signature = await provider.send("eth_signTypedData_v4", [
-          walletAddress,
-          JSON.stringify(msgParams),
-        ]);
-      } else {
-        // Fallback for other signers
-        const signerWithAddress = signer as any;
-        if (signerWithAddress._signTypedData) {
-          signature = await signerWithAddress._signTypedData(
-            domain,
-            types,
-            order
-          );
-        } else {
-          // Last resort - create a simple signature
-          const messageHash = ethers.utils.id(JSON.stringify(order));
-          signature = await signer.signMessage(messageHash);
-        }
-      }
-
-      // Calculate order hash
-      const orderHash = ethers.utils._TypedDataEncoder.hash(
+      const signature = await (signer as any)._signTypedData(
         domain,
         types,
         order
       );
-
-      return {
-        order,
-        signature,
-        orderHash,
-      };
+      return signature;
     } catch (error) {
       console.error("Error signing order:", error);
-      throw new Error("Failed to sign order. Please try again.");
+      throw new Error("Failed to sign order");
     }
   }
 
-  async submitOrder(order: OrderData, signature: string, orderHash: string) {
-    // For demo, just log it
-    console.log("Order to submit:", {
-      order,
-      signature,
-      orderHash,
+  protected async calculateOrderHash(order: any): Promise<string> {
+    const orderString = JSON.stringify({
+      salt: order.salt,
+      maker: order.maker,
+      receiver: order.receiver,
+      makerAsset: order.makerAsset,
+      takerAsset: order.takerAsset,
+      makingAmount: order.makingAmount,
+      takingAmount: order.takingAmount,
+      makerTraits: order.makerTraits,
     });
 
-    // In production, submit to 1inch API
-    // const apiKey = process.env.REACT_APP_1INCH_API_KEY;
-    // const response = await fetch(...);
-
-    return {
-      success: true,
-      orderHash,
-      message: "Order created (demo mode)",
-    };
+    return ethers.utils.id(orderString);
   }
-}
 
-// Add TypeScript declaration for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: any;
+  // Helper method to check if an order should be executed
+  async shouldExecuteOrder(order: any, currentPrice: number): Promise<boolean> {
+    const stopPrice = this.extractStopPriceFromOrder(order);
+    return currentPrice <= stopPrice;
+  }
+
+  private extractStopPriceFromOrder(order: any): number {
+    const makingAmount = ethers.utils.formatEther(order.makingAmount);
+    const takingAmount = ethers.utils.formatUnits(order.takingAmount, 6);
+    return parseFloat(takingAmount) / parseFloat(makingAmount);
+  }
+
+  getSupportedTokens(): string[] {
+    return Object.keys(this.tokenAddresses);
+  }
+
+  getTokenAddress(symbol: string): string {
+    return this.tokenAddresses[symbol] || symbol;
   }
 }
