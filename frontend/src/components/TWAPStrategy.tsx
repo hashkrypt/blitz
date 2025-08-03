@@ -5,10 +5,10 @@ import { useWallet } from "../hooks/useWallet";
 
 const TWAPStrategy: React.FC = () => {
   const { signer, isConnected } = useWallet();
-  const [fromChain, setFromChain] = useState("base");
-  const [toChain, setToChain] = useState("stellar");
-  const [fromToken, setFromToken] = useState("USDC");
-  const [toToken, setToToken] = useState("XLM");
+  const [fromChain, setFromChain] = useState("ethereum");
+  const [toChain, setToChain] = useState("solana");
+  const [fromToken, setFromToken] = useState("ETH");
+  const [toToken, setToToken] = useState("SOL");
   const [totalAmount, setTotalAmount] = useState("");
   const [chunks, setChunks] = useState("10");
   const [duration, setDuration] = useState("4"); // hours
@@ -16,14 +16,139 @@ const TWAPStrategy: React.FC = () => {
   const [preview, setPreview] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const tokens = [
-    { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890 },
-    { symbol: "MATIC", name: "Polygon", price: 0.89 },
-    { symbol: "ETH", name: "Ethereum", price: 2150 },
-    { symbol: "1INCH", name: "1inch", price: 0.42 },
-    { symbol: "LINK", name: "Chainlink", price: 14.5 },
+  // All chains
+  const chains = [
+    // From the images
+    { id: "solana", name: "Solana", icon: "☀️", category: "new" },
+    { id: "ethereum", name: "Ethereum", icon: "Ξ", category: "mainnet" },
+    { id: "unichain", name: "Unichain", icon: "🦄", category: "l2" },
+    { id: "optimism", name: "Optimism", icon: "🔴", category: "l2" },
+    { id: "arbitrum", name: "Arbitrum", icon: "🔵", category: "l2" },
+    { id: "zksync", name: "zkSync Era", icon: "⚡", category: "l2" },
+    { id: "base", name: "Base", icon: "🔵", category: "l2" },
+    { id: "linea", name: "Linea", icon: "🟡", category: "l2" },
+    { id: "bnb", name: "BNB Chain", icon: "🟡", category: "mainnet" },
+    { id: "sonic", name: "Sonic", icon: "⚡", category: "mainnet" },
+    { id: "polygon", name: "Polygon", icon: "🟣", category: "mainnet" },
+    { id: "gnosis", name: "Gnosis", icon: "🦉", category: "mainnet" },
+    { id: "avalanche", name: "Avalanche", icon: "🔺", category: "mainnet" },
+
+    // Priority Fusion+ Chains
+    { id: "aptos", name: "Aptos", icon: "🅰️", category: "fusion-priority" },
+    { id: "bitcoin", name: "Bitcoin", icon: "₿", category: "fusion-priority" },
+    { id: "cosmos", name: "Cosmos", icon: "⚛️", category: "fusion-priority" },
+    { id: "near", name: "NEAR", icon: "🌐", category: "fusion-priority" },
+    { id: "sui", name: "Sui", icon: "💧", category: "fusion-priority" },
+    { id: "tron", name: "Tron", icon: "🎯", category: "fusion-priority" },
+    { id: "stellar", name: "Stellar", icon: "✨", category: "fusion-priority" },
+
+    // Standard Fusion+ Chains
+    { id: "ton", name: "TON", icon: "💎", category: "fusion-standard" },
+    { id: "monad", name: "Monad", icon: "🟣", category: "fusion-standard" },
+    {
+      id: "starknet",
+      name: "Starknet",
+      icon: "🌟",
+      category: "fusion-standard",
+    },
+    { id: "cardano", name: "Cardano", icon: "🔷", category: "fusion-standard" },
+    { id: "xrp", name: "XRP Ledger", icon: "🌊", category: "fusion-standard" },
+    {
+      id: "icp",
+      name: "Internet Computer",
+      icon: "🖥️",
+      category: "fusion-standard",
+    },
+    { id: "tezos", name: "Tezos", icon: "🔵", category: "fusion-standard" },
+    {
+      id: "polkadot",
+      name: "Polkadot",
+      icon: "⚪",
+      category: "fusion-standard",
+    },
   ];
+
+  const tokens = [
+    { symbol: "1INCH", name: "1inch", price: 0.42 },
+    { symbol: "AAVE", name: "Aave", price: 95 },
+    { symbol: "ADA", name: "Cardano", price: 0.38, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "AGIX", name: "SingularityNET", price: 0.21 },
+    { symbol: "ALGO", name: "Algorand", price: 0.16 },
+    { symbol: "ALPHA", name: "Alpha Finance", price: 0.089 },
+    { symbol: "APT", name: "Aptos", price: 8.9, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "ARB", name: "Arbitrum", price: 0.85 },
+    { symbol: "ATOM", name: "Cosmos", price: 9.8, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "AUTO", name: "Auto", price: 285 },
+    { symbol: "AVAX", name: "Avalanche", price: 35 },
+    { symbol: "AXS", name: "Axie Infinity", price: 5.8 },
+    { symbol: "BAL", name: "Balancer", price: 2.8 },
+    { symbol: "BCH", name: "Bitcoin Cash", price: 245, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "BNB", name: "BNB", price: 310 },
+    { symbol: "BTC", name: "Bitcoin", price: 43250, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "BUSD", name: "Binance USD", price: 1.0 },
+    { symbol: "CAKE", name: "PancakeSwap", price: 1.9 },
+    { symbol: "COMP", name: "Compound", price: 58 },
+    { symbol: "CRO", name: "Cronos", price: 0.085 },
+    { symbol: "CRV", name: "Curve DAO", price: 0.62 },
+    { symbol: "CVX", name: "Convex Finance", price: 2.3 },
+    { symbol: "DAI", name: "DAI", price: 1.0 },
+    { symbol: "DASH", name: "Dash", price: 32 },
+    { symbol: "DOGE", name: "Dogecoin", price: 0.078, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "DOT", name: "Polkadot", price: 6.5, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "ENJ", name: "Enjin Coin", price: 0.18 },
+    { symbol: "EOS", name: "EOS", price: 0.58, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "ETH", name: "Ethereum", price: 2150 },
+    { symbol: "FET", name: "Fetch.ai", price: 0.28 },
+    { symbol: "FIL", name: "Filecoin", price: 4.2 },
+    { symbol: "FLOKI", name: "Floki", price: 0.000028 },
+    { symbol: "FRAX", name: "Frax", price: 1.0 },
+    { symbol: "FTT", name: "FTX Token", price: 1.2 },
+    { symbol: "GALA", name: "Gala", price: 0.022 },
+    { symbol: "GOLD", name: "Gold Token", price: 65 },
+    { symbol: "GRT", name: "The Graph", price: 0.12 },
+    { symbol: "HT", name: "Huobi Token", price: 2.1 },
+    { symbol: "ICP", name: "Internet Computer", price: 12.5, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "IMX", name: "Immutable X", price: 1.4 },
+    { symbol: "IOTA", name: "IOTA", price: 0.18 },
+    { symbol: "LDO", name: "Lido DAO", price: 1.9 },
+    { symbol: "LINK", name: "Chainlink", price: 14.5 },
+    { symbol: "LRC", name: "Loopring", price: 0.23 },
+    { symbol: "LTC", name: "Litecoin", price: 73, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "MANA", name: "Decentraland", price: 0.38 },
+    { symbol: "MATIC", name: "Polygon", price: 0.89 },
+    { symbol: "MKR", name: "Maker", price: 1450 },
+    { symbol: "MONAD", name: "Monad", price: 15, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "NEAR", name: "NEAR Protocol", price: 1.85, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "NEO", name: "Neo", price: 12 },
+    { symbol: "OCEAN", name: "Ocean Protocol", price: 0.42 },
+    { symbol: "OKB", name: "OKB", price: 45 },
+    { symbol: "OP", name: "Optimism", price: 1.6 },
+    { symbol: "PEPE", name: "Pepe", price: 0.000000012 },
+    { symbol: "RWA", name: "Real World Assets", price: 0.25 },
+    { symbol: "SAND", name: "The Sandbox", price: 0.32 },
+    { symbol: "SHIB", name: "Shiba Inu", price: 0.0000089 },
+    { symbol: "SNX", name: "Synthetix", price: 2.1 },
+    { symbol: "SOL", name: "Solana", price: 98 },
+    { symbol: "STRK", name: "Starknet", price: 0.45, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "SUI", name: "Sui", price: 1.75, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "SUSHI", name: "SushiSwap", price: 0.78 },
+    { symbol: "THETA", name: "Theta Network", price: 0.95 },
+    { symbol: "TON", name: "TON", price: 2.2, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "TRX", name: "TRON", price: 0.105, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "TUSD", name: "TrueUSD", price: 1.0 },
+    { symbol: "UNI", name: "Uniswap", price: 6.8 },
+    { symbol: "USDC", name: "USD Coin", price: 1.0 },
+    { symbol: "USDT", name: "Tether", price: 1.0 },
+    { symbol: "VET", name: "VeChain", price: 0.025 },
+    { symbol: "WBTC", name: "Wrapped BTC", price: 43250 },
+    { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
+    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "XMR", name: "Monero", price: 158 },
+    { symbol: "XRP", name: "XRP", price: 0.52, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "XTZ", name: "Tezos", price: 0.68, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "YFI", name: "yearn.finance", price: 6200 },
+    { symbol: "ZEC", name: "Zcash", price: 28 },
+  ].sort((a, b) => a.symbol.localeCompare(b.symbol));
 
   // Calculate preview
   useEffect(() => {
@@ -32,7 +157,7 @@ const TWAPStrategy: React.FC = () => {
       const intervalMinutes = (parseFloat(duration) * 60) / parseInt(chunks);
 
       setPreview({
-        chunkSize: chunkSize.toFixed(4),
+        chunkSize: chunkSize.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         intervalMinutes: intervalMinutes.toFixed(1),
         totalTime: duration,
         priceImpactReduction: Math.min(parseInt(chunks) * 10, 85), // Rough estimate
@@ -72,7 +197,7 @@ const TWAPStrategy: React.FC = () => {
         type: "twap",
         strategy: "twap",
         createdAt: new Date().toISOString(),
-        chunkSize: (parseFloat(totalAmount) / parseInt(chunks)).toFixed(4),
+        chunkSize: (parseFloat(totalAmount) / parseInt(chunks)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       };
 
       // Save to both TWAP orders and general orders
@@ -137,10 +262,68 @@ const TWAPStrategy: React.FC = () => {
                 onChange={(e) => setFromChain(e.target.value)}
                 className="input-field text-sm"
               >
-                <option value="base">🔵 Base</option>
-                <option value="ethereum">Ξ Ethereum</option>
-                <option value="polygon">🟣 Polygon</option>
-                <option value="arbitrum">🔵 Arbitrum</option>
+                <optgroup label="Popular Networks">
+                  {chains
+                    .filter((c) =>
+                      [
+                        "ethereum",
+                        "polygon",
+                        "arbitrum",
+                        "optimism",
+                        "base",
+                        "solana",
+                      ].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Layer 2">
+                  {chains
+                    .filter(
+                      (c) =>
+                        c.category === "l2" &&
+                        !["arbitrum", "optimism", "base"].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name} L2
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Mainnets">
+                  {chains
+                    .filter(
+                      (c) =>
+                        c.category === "mainnet" &&
+                        !["ethereum", "polygon"].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Fusion+ Priority">
+                  {chains
+                    .filter((c) => c.category === "fusion-priority")
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name} ⚡
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Fusion+">
+                  {chains
+                    .filter((c) => c.category === "fusion-standard")
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </div>
             <div>
@@ -152,10 +335,68 @@ const TWAPStrategy: React.FC = () => {
                 onChange={(e) => setToChain(e.target.value)}
                 className="input-field text-sm"
               >
-                <option value="stellar">✨ Stellar</option>
-                <option value="ethereum">Ξ Ethereum</option>
-                <option value="polygon">🟣 Polygon</option>
-                <option value="arbitrum">🔵 Arbitrum</option>
+                <optgroup label="Popular Networks">
+                  {chains
+                    .filter((c) =>
+                      [
+                        "ethereum",
+                        "polygon",
+                        "arbitrum",
+                        "optimism",
+                        "base",
+                        "solana",
+                      ].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Layer 2">
+                  {chains
+                    .filter(
+                      (c) =>
+                        c.category === "l2" &&
+                        !["arbitrum", "optimism", "base"].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name} L2
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Mainnets">
+                  {chains
+                    .filter(
+                      (c) =>
+                        c.category === "mainnet" &&
+                        !["ethereum", "polygon"].includes(c.id)
+                    )
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Fusion+ Priority">
+                  {chains
+                    .filter((c) => c.category === "fusion-priority")
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name} ⚡
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Fusion+">
+                  {chains
+                    .filter((c) => c.category === "fusion-standard")
+                    .map((chain) => (
+                      <option key={chain.id} value={chain.id}>
+                        {chain.icon} {chain.name}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </div>
           </div>
@@ -203,7 +444,7 @@ const TWAPStrategy: React.FC = () => {
               type="number"
               value={totalAmount}
               onChange={(e) => setTotalAmount(e.target.value)}
-              placeholder="0.0"
+              placeholder="0.00"
               className="input-field"
             />
           </div>
@@ -408,14 +649,14 @@ const TWAPOrdersList: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {orders.map((order, index) => (
+      {orders.map((order) => (
         <div key={order.id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-2">
                 <span className="text-lg">📈</span>
                 <span className="font-semibold">
-                  {order.totalAmount} {order.fromToken} → {order.toToken}
+                  {parseFloat(order.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {order.fromToken} → {order.toToken}
                 </span>
                 <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded-full">
                   TWAP

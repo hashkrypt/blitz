@@ -49,7 +49,7 @@ const OneInchDashboard: React.FC = () => {
   });
 
   const [historyStats, setHistoryStats] = useState<HistoryStats>({
-    totalSaved: 124532,
+    totalSaved: 5750,
     ordersExecuted: 89,
     successRate: 94.3,
     twapCompleted: 156,

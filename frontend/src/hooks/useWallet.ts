@@ -81,10 +81,15 @@ export const useWallet = () => {
       return;
     }
 
-    setIsConnecting(true);
+    if (!window.ethereum.isMetaMask) {
+      toast.error("Please use MetaMask wallet!");
+      return;
+    }
 
+    setIsConnecting(true);
+    
     try {
-      // Request account access
+      // This will always trigger MetaMask popup for connection
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
@@ -158,11 +163,15 @@ export const useWallet = () => {
       console.error("Error connecting wallet:", error);
 
       if (error.code === -32002) {
-        toast.error("Please check MetaMask - connection request pending");
+        toast.error("MetaMask is already processing a request. Please check MetaMask!");
       } else if (error.code === 4001) {
-        toast.error("Connection rejected");
+        toast.error("Connection rejected by user");
+      } else if (error.code === -32603) {
+        toast.error("MetaMask internal error. Please try again!");
+      } else if (error.message?.includes("User rejected")) {
+        toast.error("Connection cancelled by user");
       } else {
-        toast.error("Failed to connect wallet");
+        toast.error("Failed to connect wallet. Make sure MetaMask is installed and unlocked!");
       }
     } finally {
       setIsConnecting(false);
@@ -175,7 +184,6 @@ export const useWallet = () => {
     setAddress(null);
     setChainId(null);
     setIsConnected(false);
-    toast.success("Wallet disconnected");
   };
 
   const getChainName = (chainId: number | null): string => {

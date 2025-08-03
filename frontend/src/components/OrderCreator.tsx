@@ -10,10 +10,10 @@ const OrderCreator: React.FC = () => {
 
   const [selectedStrategy, setSelectedStrategy] = useState("stop-loss");
   const [orderType, setOrderType] = useState<OrderType>("both");
-  const [fromChain, setFromChain] = useState("base");
-  const [toChain, setToChain] = useState("stellar");
-  const [fromToken, setFromToken] = useState("USDC");
-  const [toToken, setToToken] = useState("XLM");
+  const [fromChain, setFromChain] = useState("ethereum");
+  const [toChain, setToChain] = useState("solana");
+  const [fromToken, setFromToken] = useState("ETH");
+  const [toToken, setToToken] = useState("SOL");
   const [amount, setAmount] = useState("");
   const [stopPrice, setStopPrice] = useState("");
   const [profitPrice, setProfitPrice] = useState("");
@@ -181,17 +181,88 @@ const OrderCreator: React.FC = () => {
     },
   ];
 
-  // Token list
+  // Token list - Alphabetically organized with Fusion+ chains highlighted
   const tokens = [
-    { symbol: "USDC", name: "USD Coin", price: 1.0 },
-    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890 },
-    { symbol: "MATIC", name: "Polygon", price: 0.89 },
-    { symbol: "USDT", name: "Tether", price: 1.0 },
-    { symbol: "DAI", name: "DAI", price: 1.0 },
-    { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
-    { symbol: "WBTC", name: "Wrapped BTC", price: 43250 },
     { symbol: "1INCH", name: "1inch", price: 0.42 },
-  ];
+    { symbol: "AAVE", name: "Aave", price: 95 },
+    { symbol: "ADA", name: "Cardano", price: 0.38, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "AGIX", name: "SingularityNET", price: 0.21 },
+    { symbol: "ALGO", name: "Algorand", price: 0.16 },
+    { symbol: "ALPHA", name: "Alpha Finance", price: 0.089 },
+    { symbol: "APT", name: "Aptos", price: 8.9, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "ARB", name: "Arbitrum", price: 0.85 },
+    { symbol: "ATOM", name: "Cosmos", price: 9.8, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "AUTO", name: "Auto", price: 285 },
+    { symbol: "AVAX", name: "Avalanche", price: 35 },
+    { symbol: "AXS", name: "Axie Infinity", price: 5.8 },
+    { symbol: "BAL", name: "Balancer", price: 2.8 },
+    { symbol: "BCH", name: "Bitcoin Cash", price: 245, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "BNB", name: "BNB", price: 310 },
+    { symbol: "BTC", name: "Bitcoin", price: 43250, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "BUSD", name: "Binance USD", price: 1.0 },
+    { symbol: "CAKE", name: "PancakeSwap", price: 1.9 },
+    { symbol: "COMP", name: "Compound", price: 58 },
+    { symbol: "CRO", name: "Cronos", price: 0.085 },
+    { symbol: "CRV", name: "Curve DAO", price: 0.62 },
+    { symbol: "CVX", name: "Convex Finance", price: 2.3 },
+    { symbol: "DAI", name: "DAI", price: 1.0 },
+    { symbol: "DASH", name: "Dash", price: 32 },
+    { symbol: "DOGE", name: "Dogecoin", price: 0.078, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "DOT", name: "Polkadot", price: 6.5, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "ENJ", name: "Enjin Coin", price: 0.18 },
+    { symbol: "EOS", name: "EOS", price: 0.58, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "ETH", name: "Ethereum", price: 2150 },
+    { symbol: "FET", name: "Fetch.ai", price: 0.28 },
+    { symbol: "FIL", name: "Filecoin", price: 4.2 },
+    { symbol: "FLOKI", name: "Floki", price: 0.000028 },
+    { symbol: "FRAX", name: "Frax", price: 1.0 },
+    { symbol: "FTT", name: "FTX Token", price: 1.2 },
+    { symbol: "GALA", name: "Gala", price: 0.022 },
+    { symbol: "GOLD", name: "Gold Token", price: 65 },
+    { symbol: "GRT", name: "The Graph", price: 0.12 },
+    { symbol: "HT", name: "Huobi Token", price: 2.1 },
+    { symbol: "ICP", name: "Internet Computer", price: 12.5, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "IMX", name: "Immutable X", price: 1.4 },
+    { symbol: "IOTA", name: "IOTA", price: 0.18 },
+    { symbol: "LDO", name: "Lido DAO", price: 1.9 },
+    { symbol: "LINK", name: "Chainlink", price: 14.5 },
+    { symbol: "LRC", name: "Loopring", price: 0.23 },
+    { symbol: "LTC", name: "Litecoin", price: 73, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "MANA", name: "Decentraland", price: 0.38 },
+    { symbol: "MATIC", name: "Polygon", price: 0.89 },
+    { symbol: "MKR", name: "Maker", price: 1450 },
+    { symbol: "MONAD", name: "Monad", price: 15, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "NEAR", name: "NEAR Protocol", price: 1.85, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "NEO", name: "Neo", price: 12 },
+    { symbol: "OCEAN", name: "Ocean Protocol", price: 0.42 },
+    { symbol: "OKB", name: "OKB", price: 45 },
+    { symbol: "OP", name: "Optimism", price: 1.6 },
+    { symbol: "PEPE", name: "Pepe", price: 0.000000012 },
+    { symbol: "RWA", name: "Real World Assets", price: 0.25 },
+    { symbol: "SAND", name: "The Sandbox", price: 0.32 },
+    { symbol: "SHIB", name: "Shiba Inu", price: 0.0000089 },
+    { symbol: "SNX", name: "Synthetix", price: 2.1 },
+    { symbol: "SOL", name: "Solana", price: 98 },
+    { symbol: "STRK", name: "Starknet", price: 0.45, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "SUI", name: "Sui", price: 1.75, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "SUSHI", name: "SushiSwap", price: 0.78 },
+    { symbol: "THETA", name: "Theta Network", price: 0.95 },
+    { symbol: "TON", name: "TON", price: 2.2, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "TRX", name: "TRON", price: 0.105, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "TUSD", name: "TrueUSD", price: 1.0 },
+    { symbol: "UNI", name: "Uniswap", price: 6.8 },
+    { symbol: "USDC", name: "USD Coin", price: 1.0 },
+    { symbol: "USDT", name: "Tether", price: 1.0 },
+    { symbol: "VET", name: "VeChain", price: 0.025 },
+    { symbol: "WBTC", name: "Wrapped BTC", price: 43250 },
+    { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
+    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890, fusion: "priority" }, // 🥇 Priority Fusion+
+    { symbol: "XMR", name: "Monero", price: 158 },
+    { symbol: "XRP", name: "XRP", price: 0.52, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "XTZ", name: "Tezos", price: 0.68, fusion: "standard" }, // 🥈 Standard Fusion+
+    { symbol: "YFI", name: "yearn.finance", price: 6200 },
+    { symbol: "ZEC", name: "Zcash", price: 28 },
+  ].sort((a, b) => a.symbol.localeCompare(b.symbol));
 
   const fromTokenData = tokens.find((t) => t.symbol === fromToken) || tokens[0];
   const toTokenData = tokens.find((t) => t.symbol === toToken) || tokens[1];
@@ -533,7 +604,7 @@ const OrderCreator: React.FC = () => {
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.0"
+              placeholder="0.00"
               className="flex-1 bg-transparent text-lg font-semibold outline-none"
             />
             <select
@@ -650,8 +721,8 @@ const OrderCreator: React.FC = () => {
           </div>
           <div className="flex space-x-2">
             <input
-              type="number"
-              value={currentOutput.toFixed(2)}
+              type="text"
+              value={currentOutput.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               readOnly
               className="flex-1 bg-transparent text-lg font-semibold outline-none text-gray-400"
             />
