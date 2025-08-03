@@ -18,9 +18,11 @@ const Header: React.FC = () => {
               style={{ height: "64px" }}
             />
             <span className="text-gray-400 text-2xl mx-3">|</span>
-            <span className="text-2xl text-gray-400 font-medium">
-              Blitz Pro
-            </span>
+            <img
+              src="/logos/blitz-logo.png"
+              alt="Blitz Pro"
+              className="h-20 w-auto"
+            />
           </div>
 
           {isConnected ? (

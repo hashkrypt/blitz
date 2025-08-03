@@ -38,3 +38,14 @@
     @apply text-gray-400 hover:text-gray-200 border-b-2 border-transparent;
   }
 }
+
+/* Enhance card visibility over background */
+.card {
+  backdrop-filter: blur(10px);
+  background-color: rgba(31, 41, 55, 0.8) !important;
+}
+
+/* Ensure input fields remain visible */
+.input-field {
+  background-color: rgba(17, 24, 39, 0.9) !important;
+}

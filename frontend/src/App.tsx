@@ -14,12 +14,12 @@ function App() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
       </div>
 
-      {/* Large background unicorn - very subtle */}
+      {/* Large background unicorn - subtle but visible */}
       <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
         <img
           src="/logos/1inch_without_text_white.svg"
           alt=""
-          className="w-[600px] h-[600px] opacity-[0.02]"
+          className="w-[600px] h-[600px] opacity-[0.12]"
         />
       </div>
 
