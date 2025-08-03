@@ -17,6 +17,66 @@ const OrderCreator: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [stopPrice, setStopPrice] = useState("");
   const [profitPrice, setProfitPrice] = useState("");
+  const [selectedStrategy, setSelectedStrategy] = useState("stop-loss");
+
+  // All strategies list
+  const strategies = [
+    {
+      id: "stop-loss",
+      name: "Stop-Loss/Take-Profit",
+      icon: "🛡️",
+      implemented: true,
+    },
+    { id: "twap", name: "TWAP", icon: "⏱️", implemented: true },
+    { id: "grid", name: "Grid Trading", icon: "🎯", implemented: false },
+    {
+      id: "dca",
+      name: "DCA (Dollar Cost Average)",
+      icon: "💵",
+      implemented: false,
+    },
+    {
+      id: "trailing",
+      name: "Trailing Stop-Loss",
+      icon: "📈",
+      implemented: false,
+    },
+    { id: "iceberg", name: "Iceberg Orders", icon: "🧊", implemented: false },
+    { id: "bracket", name: "Bracket Orders", icon: "🎯", implemented: false },
+    {
+      id: "conditional",
+      name: "If-Then Orders",
+      icon: "🔄",
+      implemented: false,
+    },
+    { id: "vwap", name: "VWAP", icon: "📊", implemented: false },
+    {
+      id: "momentum",
+      name: "Momentum Trading",
+      icon: "🚀",
+      implemented: false,
+    },
+    {
+      id: "mean-reversion",
+      name: "Mean Reversion",
+      icon: "📉",
+      implemented: false,
+    },
+    { id: "range", name: "Range Orders", icon: "📏", implemented: false },
+    { id: "scale", name: "Scale In/Out", icon: "📈", implemented: false },
+    {
+      id: "arbitrage",
+      name: "Arbitrage Protection",
+      icon: "⚡",
+      implemented: false,
+    },
+    {
+      id: "flash",
+      name: "Flash Crash Protection",
+      icon: "💥",
+      implemented: false,
+    },
+  ];
 
   // All chains
   const chains = [
@@ -48,6 +108,26 @@ const OrderCreator: React.FC = () => {
     const tempToken = fromToken;
     setFromToken(toToken);
     setToToken(tempToken);
+  };
+
+  const handleStrategyChange = (strategyId: string) => {
+    const strategy = strategies.find((s) => s.id === strategyId);
+    if (strategy?.implemented) {
+      setSelectedStrategy(strategyId);
+      if (strategyId === "twap") {
+        // Redirect to TWAP tab
+        // This would be handled by parent component
+        toast("Switching to TWAP strategy...", {
+          icon: "ℹ️",
+          duration: 2000,
+        });
+      }
+    } else {
+      toast("This strategy is coming soon!", {
+        icon: "🚧",
+        duration: 3000,
+      });
+    }
   };
 
   const handleCreateOrder = async () => {
@@ -122,6 +202,49 @@ const OrderCreator: React.FC = () => {
 
   return (
     <div className="card max-w-xl mx-auto">
+      {/* Strategy Selector Dropdown */}
+      <div className="mb-4 p-3 bg-gray-800 rounded-lg">
+        <div className="flex items-center justify-between">
+          <label className="text-sm text-gray-400">Select Strategy:</label>
+          <div className="relative">
+            <select
+              value={selectedStrategy}
+              onChange={(e) => handleStrategyChange(e.target.value)}
+              className="bg-gray-700 text-white rounded-lg px-4 py-2 pr-10 appearance-none cursor-pointer hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              {strategies.map((strategy) => (
+                <option
+                  key={strategy.id}
+                  value={strategy.id}
+                  disabled={!strategy.implemented}
+                >
+                  {strategy.icon} {strategy.name}{" "}
+                  {!strategy.implemented && "(Coming Soon)"}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          15 strategies available • 2 implemented • 13 coming soon
+        </p>
+      </div>
+
       <h2 className="text-xl font-bold mb-3 text-center">
         Stop-Loss/Take-Profit Strategy
       </h2>
