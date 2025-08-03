@@ -9,6 +9,7 @@ const OrderCreator: React.FC = () => {
   const { signer, isConnected } = useWallet();
   const { createStopLossOrder, isLoading } = useStopLoss();
 
+  const [selectedStrategy, setSelectedStrategy] = useState("stop-loss");
   const [orderType, setOrderType] = useState<OrderType>("both");
   const [fromChain, setFromChain] = useState("polygon");
   const [toChain, setToChain] = useState("polygon");
@@ -17,75 +18,168 @@ const OrderCreator: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [stopPrice, setStopPrice] = useState("");
   const [profitPrice, setProfitPrice] = useState("");
-  const [selectedStrategy, setSelectedStrategy] = useState("stop-loss");
 
-  // All strategies list
+  // All strategies list with descriptions
   const strategies = [
     {
       id: "stop-loss",
       name: "Stop-Loss/Take-Profit",
       icon: "🛡️",
+      description: "Protect your assets from losses and lock in profits",
       implemented: true,
     },
-    { id: "twap", name: "TWAP", icon: "⏱️", implemented: true },
-    { id: "grid", name: "Grid Trading", icon: "🎯", implemented: false },
+    {
+      id: "twap",
+      name: "TWAP",
+      icon: "⏱️",
+      description: "Execute large orders over time to minimize price impact",
+      implemented: true,
+    },
+    {
+      id: "grid",
+      name: "Grid Trading",
+      icon: "🎯",
+      description:
+        "Profit from market volatility with automated buy/sell orders",
+      implemented: false,
+    },
     {
       id: "dca",
       name: "DCA (Dollar Cost Average)",
       icon: "💵",
+      description: "Invest fixed amounts at regular intervals",
       implemented: false,
     },
     {
       id: "trailing",
       name: "Trailing Stop-Loss",
       icon: "📈",
+      description: "Stop-loss that follows price upward to lock in profits",
       implemented: false,
     },
-    { id: "iceberg", name: "Iceberg Orders", icon: "🧊", implemented: false },
-    { id: "bracket", name: "Bracket Orders", icon: "🎯", implemented: false },
+    {
+      id: "iceberg",
+      name: "Iceberg Orders",
+      icon: "🧊",
+      description: "Hide large order sizes to minimize market impact",
+      implemented: false,
+    },
+    {
+      id: "bracket",
+      name: "Bracket Orders",
+      icon: "🎯",
+      description:
+        "Complete trade setup with entry, stop-loss, and take-profit",
+      implemented: false,
+    },
     {
       id: "conditional",
       name: "If-Then Orders",
       icon: "🔄",
+      description: "Execute orders based on specific conditions",
       implemented: false,
     },
-    { id: "vwap", name: "VWAP", icon: "📊", implemented: false },
+    {
+      id: "vwap",
+      name: "VWAP",
+      icon: "📊",
+      description: "Trade based on volume-weighted average price",
+      implemented: false,
+    },
     {
       id: "momentum",
       name: "Momentum Trading",
       icon: "🚀",
+      description: "Catch breakouts and trend reversals automatically",
       implemented: false,
     },
     {
       id: "mean-reversion",
       name: "Mean Reversion",
       icon: "📉",
+      description: "Trade when price deviates from moving average",
       implemented: false,
     },
-    { id: "range", name: "Range Orders", icon: "📏", implemented: false },
-    { id: "scale", name: "Scale In/Out", icon: "📈", implemented: false },
+    {
+      id: "range",
+      name: "Range Orders",
+      icon: "📏",
+      description: "Buy within a specific price range over time",
+      implemented: false,
+    },
+    {
+      id: "scale",
+      name: "Scale In/Out",
+      icon: "📈",
+      description: "Enter or exit positions at multiple price levels",
+      implemented: false,
+    },
     {
       id: "arbitrage",
       name: "Arbitrage Protection",
       icon: "⚡",
+      description: "Capture price differences across DEXs",
       implemented: false,
     },
     {
       id: "flash",
       name: "Flash Crash Protection",
       icon: "💥",
+      description: "Buy during extreme market events",
       implemented: false,
     },
   ];
 
   // All chains
   const chains = [
-    { id: "polygon", name: "Polygon", icon: "🟣" },
-    { id: "ethereum", name: "Ethereum", icon: "⟠" },
-    { id: "bsc", name: "BSC", icon: "🟡" },
-    { id: "arbitrum", name: "Arbitrum", icon: "🔵" },
-    { id: "optimism", name: "Optimism", icon: "🔴" },
-    { id: "avalanche", name: "Avalanche", icon: "🔺" },
+    // From the images
+    { id: "solana", name: "Solana", icon: "☀️", category: "new" },
+    { id: "ethereum", name: "Ethereum", icon: "Ξ", category: "mainnet" },
+    { id: "unichain", name: "Unichain", icon: "🦄", category: "l2" },
+    { id: "optimism", name: "Optimism", icon: "🔴", category: "l2" },
+    { id: "arbitrum", name: "Arbitrum", icon: "🔵", category: "l2" },
+    { id: "zksync", name: "zkSync Era", icon: "⚡", category: "l2" },
+    { id: "base", name: "Base", icon: "🔵", category: "l2" },
+    { id: "linea", name: "Linea", icon: "🟡", category: "l2" },
+    { id: "bnb", name: "BNB Chain", icon: "🟡", category: "mainnet" },
+    { id: "sonic", name: "Sonic", icon: "⚡", category: "mainnet" },
+    { id: "polygon", name: "Polygon", icon: "🟣", category: "mainnet" },
+    { id: "gnosis", name: "Gnosis", icon: "🦉", category: "mainnet" },
+    { id: "avalanche", name: "Avalanche", icon: "🔺", category: "mainnet" },
+
+    // Priority Fusion+ Chains
+    { id: "aptos", name: "Aptos", icon: "🅰️", category: "fusion-priority" },
+    { id: "bitcoin", name: "Bitcoin", icon: "₿", category: "fusion-priority" },
+    { id: "cosmos", name: "Cosmos", icon: "⚛️", category: "fusion-priority" },
+    { id: "near", name: "NEAR", icon: "🌐", category: "fusion-priority" },
+    { id: "sui", name: "Sui", icon: "💧", category: "fusion-priority" },
+    { id: "tron", name: "Tron", icon: "🎯", category: "fusion-priority" },
+    { id: "stellar", name: "Stellar", icon: "✨", category: "fusion-priority" },
+
+    // Standard Fusion+ Chains
+    { id: "ton", name: "TON", icon: "💎", category: "fusion-standard" },
+    { id: "monad", name: "Monad", icon: "🟣", category: "fusion-standard" },
+    {
+      id: "starknet",
+      name: "Starknet",
+      icon: "🌟",
+      category: "fusion-standard",
+    },
+    { id: "cardano", name: "Cardano", icon: "🔷", category: "fusion-standard" },
+    { id: "xrp", name: "XRP Ledger", icon: "🌊", category: "fusion-standard" },
+    {
+      id: "icp",
+      name: "Internet Computer",
+      icon: "🖥️",
+      category: "fusion-standard",
+    },
+    { id: "tezos", name: "Tezos", icon: "🔵", category: "fusion-standard" },
+    {
+      id: "polkadot",
+      name: "Polkadot",
+      icon: "⚪",
+      category: "fusion-standard",
+    },
   ];
 
   // Token list
@@ -114,14 +208,6 @@ const OrderCreator: React.FC = () => {
     const strategy = strategies.find((s) => s.id === strategyId);
     if (strategy?.implemented) {
       setSelectedStrategy(strategyId);
-      if (strategyId === "twap") {
-        // Redirect to TWAP tab
-        // This would be handled by parent component
-        toast("Switching to TWAP strategy...", {
-          icon: "ℹ️",
-          duration: 2000,
-        });
-      }
     } else {
       toast("This strategy is coming soon!", {
         icon: "🚧",
@@ -200,50 +286,97 @@ const OrderCreator: React.FC = () => {
     }
   };
 
-  return (
-    <div className="card max-w-xl mx-auto">
-      {/* Strategy Selector Dropdown */}
-      <div className="mb-4 p-3 bg-gray-800 rounded-lg">
-        <div className="flex items-center justify-between">
-          <label className="text-sm text-gray-400">Select Strategy:</label>
-          <div className="relative">
-            <select
-              value={selectedStrategy}
-              onChange={(e) => handleStrategyChange(e.target.value)}
-              className="bg-gray-700 text-white rounded-lg px-4 py-2 pr-10 appearance-none cursor-pointer hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              {strategies.map((strategy) => (
-                <option
-                  key={strategy.id}
-                  value={strategy.id}
-                  disabled={!strategy.implemented}
-                >
-                  {strategy.icon} {strategy.name}{" "}
-                  {!strategy.implemented && "(Coming Soon)"}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg
-                className="w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+  // Render strategy selector dropdown
+  const renderStrategySelector = () => (
+    <div className="mb-4 p-3 bg-gray-800 rounded-lg max-w-xl mx-auto">
+      <div className="flex items-center justify-between">
+        <label className="text-sm text-gray-400">Select Strategy:</label>
+        <div className="relative">
+          <select
+            value={selectedStrategy}
+            onChange={(e) => handleStrategyChange(e.target.value)}
+            className="bg-gray-700 text-white rounded-lg px-4 py-2 pr-10 appearance-none cursor-pointer hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            {strategies.map((strategy) => (
+              <option
+                key={strategy.id}
+                value={strategy.id}
+                disabled={!strategy.implemented}
+                className={!strategy.implemented ? "text-gray-500" : ""}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </div>
+                {strategy.icon} {strategy.name}{" "}
+                {!strategy.implemented && "(Coming Soon)"}
+              </option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          15 strategies available • 2 implemented • 13 coming soon
-        </p>
       </div>
+    </div>
+  );
+
+  // If TWAP strategy is selected, show TWAP component
+  if (selectedStrategy === "twap") {
+    // Import TWAPStrategy dynamically to avoid circular dependencies
+    const TWAPStrategy = React.lazy(() => import("./TWAPStrategy"));
+
+    return (
+      <div className="w-full">
+        {renderStrategySelector()}
+        <React.Suspense
+          fallback={<div className="text-center">Loading TWAP...</div>}
+        >
+          <TWAPStrategy />
+        </React.Suspense>
+      </div>
+    );
+  }
+
+  // Coming soon placeholder for unimplemented strategies
+  const strategy = strategies.find((s) => s.id === selectedStrategy);
+  if (!strategy?.implemented) {
+    return (
+      <div className="w-full">
+        {renderStrategySelector()}
+
+        <div className="card max-w-xl mx-auto text-center py-12">
+          <div className="text-6xl mb-4">{strategy?.icon}</div>
+          <h2 className="text-2xl font-bold mb-2">{strategy?.name}</h2>
+          <p className="text-gray-400 mb-6">{strategy?.description}</p>
+          <div className="bg-yellow-900/20 border border-yellow-600 rounded-xl p-4 mb-6">
+            <p className="text-sm text-yellow-400">
+              🚧 This strategy is coming soon! Currently in development.
+            </p>
+          </div>
+          <button
+            onClick={() => setSelectedStrategy("stop-loss")}
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg text-sm font-semibold transition-colors"
+          >
+            Try Stop-Loss/Take-Profit Instead
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default Stop-Loss/Take-Profit form
+  return (
+    <div className="card max-w-xl mx-auto">
+      {renderStrategySelector()}
 
       <h2 className="text-xl font-bold mb-3 text-center">
         Stop-Loss/Take-Profit Strategy
@@ -299,11 +432,68 @@ const OrderCreator: React.FC = () => {
               onChange={(e) => setFromChain(e.target.value)}
               className="bg-gray-700 rounded px-2 py-0.5 text-xs"
             >
-              {chains.map((chain) => (
-                <option key={chain.id} value={chain.id}>
-                  {chain.icon} {chain.name}
-                </option>
-              ))}
+              <optgroup label="Popular Networks">
+                {chains
+                  .filter((c) =>
+                    [
+                      "ethereum",
+                      "polygon",
+                      "arbitrum",
+                      "optimism",
+                      "base",
+                      "solana",
+                    ].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Layer 2">
+                {chains
+                  .filter(
+                    (c) =>
+                      c.category === "l2" &&
+                      !["arbitrum", "optimism", "base"].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name} L2
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Mainnets">
+                {chains
+                  .filter(
+                    (c) =>
+                      c.category === "mainnet" &&
+                      !["ethereum", "polygon"].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Fusion+ Priority">
+                {chains
+                  .filter((c) => c.category === "fusion-priority")
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name} ⚡
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Fusion+">
+                {chains
+                  .filter((c) => c.category === "fusion-standard")
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </div>
           <div className="flex space-x-2">
@@ -362,11 +552,68 @@ const OrderCreator: React.FC = () => {
               onChange={(e) => setToChain(e.target.value)}
               className="bg-gray-700 rounded px-2 py-0.5 text-xs"
             >
-              {chains.map((chain) => (
-                <option key={chain.id} value={chain.id}>
-                  {chain.icon} {chain.name}
-                </option>
-              ))}
+              <optgroup label="Popular Networks">
+                {chains
+                  .filter((c) =>
+                    [
+                      "ethereum",
+                      "polygon",
+                      "arbitrum",
+                      "optimism",
+                      "base",
+                      "solana",
+                    ].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Layer 2">
+                {chains
+                  .filter(
+                    (c) =>
+                      c.category === "l2" &&
+                      !["arbitrum", "optimism", "base"].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name} L2
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Mainnets">
+                {chains
+                  .filter(
+                    (c) =>
+                      c.category === "mainnet" &&
+                      !["ethereum", "polygon"].includes(c.id)
+                  )
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Fusion+ Priority">
+                {chains
+                  .filter((c) => c.category === "fusion-priority")
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name} ⚡
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Fusion+">
+                {chains
+                  .filter((c) => c.category === "fusion-standard")
+                  .map((chain) => (
+                    <option key={chain.id} value={chain.id}>
+                      {chain.icon} {chain.name}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </div>
           <div className="flex space-x-2">
@@ -395,8 +642,21 @@ const OrderCreator: React.FC = () => {
 
         {/* Cross-chain indicator */}
         {fromChain !== toChain && (
-          <div className="text-xs text-center text-yellow-400 py-1">
-            ⚡ Cross-chain swap via 1inch Fusion+
+          <div className="text-xs text-center py-1">
+            {chains
+              .find((c) => c.id === fromChain)
+              ?.category?.includes("fusion") ||
+            chains
+              .find((c) => c.id === toChain)
+              ?.category?.includes("fusion") ? (
+              <span className="text-yellow-400">
+                ⚡ Cross-chain swap via 1inch Fusion+
+              </span>
+            ) : (
+              <span className="text-blue-400">
+                🌉 Cross-chain swap available
+              </span>
+            )}
           </div>
         )}
 

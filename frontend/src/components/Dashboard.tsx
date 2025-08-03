@@ -3,12 +3,11 @@ import OrderCreator from "./OrderCreator";
 import ActiveOrders from "./ActiveOrders";
 import PortfolioStats from "./PortfolioStats";
 import OneInchDashboard from "./OneInchDashboard";
-import TWAPStrategy from "./TWAPStrategy";
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<
-    "create" | "twap" | "manage" | "dashboard"
-  >("create");
+  const [activeTab, setActiveTab] = useState<"place" | "manage" | "dashboard">(
+    "place"
+  );
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -17,24 +16,14 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col items-center">
         <div className="bg-gray-900 rounded-2xl p-1 mb-6 inline-flex">
           <button
-            onClick={() => setActiveTab("create")}
+            onClick={() => setActiveTab("place")}
             className={`py-2 px-6 rounded-2xl text-sm font-medium transition-all ${
-              activeTab === "create"
+              activeTab === "place"
                 ? "bg-gray-800 text-white"
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Stop-Loss/Take-Profit
-          </button>
-          <button
-            onClick={() => setActiveTab("twap")}
-            className={`py-2 px-6 rounded-2xl text-sm font-medium transition-all ${
-              activeTab === "twap"
-                ? "bg-gray-800 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            TWAP
+            Place Order
           </button>
           <button
             onClick={() => setActiveTab("manage")}
@@ -59,14 +48,9 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div
-          className={
-            activeTab === "dashboard" || activeTab === "twap"
-              ? "w-full"
-              : "w-full max-w-2xl"
-          }
+          className={activeTab === "dashboard" ? "w-full" : "w-full max-w-2xl"}
         >
-          {activeTab === "create" && <OrderCreator />}
-          {activeTab === "twap" && <TWAPStrategy />}
+          {activeTab === "place" && <OrderCreator />}
           {activeTab === "manage" && <ActiveOrders />}
           {activeTab === "dashboard" && <OneInchDashboard />}
         </div>
