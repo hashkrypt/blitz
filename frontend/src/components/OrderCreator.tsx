@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { useWallet } from "../hooks/useWallet";
-import { useStopLoss } from "../hooks/useStopLoss";
 
 type OrderType = "stop-loss" | "take-profit" | "both";
 
 const OrderCreator: React.FC = () => {
   const { signer, isConnected } = useWallet();
-  const { createStopLossOrder, isLoading } = useStopLoss();
+  const [isLoading, setIsLoading] = useState(false);
 
   const [selectedStrategy, setSelectedStrategy] = useState("stop-loss");
   const [orderType, setOrderType] = useState<OrderType>("both");
-  const [fromChain, setFromChain] = useState("polygon");
-  const [toChain, setToChain] = useState("polygon");
-  const [fromToken, setFromToken] = useState("MATIC");
-  const [toToken, setToToken] = useState("USDC");
+  const [fromChain, setFromChain] = useState("base");
+  const [toChain, setToChain] = useState("stellar");
+  const [fromToken, setFromToken] = useState("USDC");
+  const [toToken, setToToken] = useState("XLM");
   const [amount, setAmount] = useState("");
   const [stopPrice, setStopPrice] = useState("");
   const [profitPrice, setProfitPrice] = useState("");
@@ -184,8 +183,9 @@ const OrderCreator: React.FC = () => {
 
   // Token list
   const tokens = [
-    { symbol: "MATIC", name: "Polygon", price: 0.89 },
     { symbol: "USDC", name: "USD Coin", price: 1.0 },
+    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890 },
+    { symbol: "MATIC", name: "Polygon", price: 0.89 },
     { symbol: "USDT", name: "Tether", price: 1.0 },
     { symbol: "DAI", name: "DAI", price: 1.0 },
     { symbol: "WETH", name: "Wrapped ETH", price: 2150 },
@@ -227,52 +227,82 @@ const OrderCreator: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
     const loadingToast = toast.loading("Creating order...");
 
     try {
+      // For demo purposes, create fake orders
+      const orders = JSON.parse(
+        localStorage.getItem("stopLossOrders") || "[]"
+      );
+
       if (orderType === "stop-loss" || orderType === "both") {
         if (!stopPrice) {
           toast.error("Please enter a stop-loss price", { id: loadingToast });
           return;
         }
 
-        // Map MATIC to WMATIC for the service
-        let tokenForService = fromToken;
-        if (fromToken === "MATIC") {
-          tokenForService = "WMATIC";
-        }
-
-        const result = await createStopLossOrder({
-          token: tokenForService,
-          amount,
-          stopPrice: parseFloat(stopPrice),
-          signer,
-        });
-
-        // Save to localStorage
-        const orders = JSON.parse(
-          localStorage.getItem("stopLossOrders") || "[]"
-        );
-        orders.push({
-          id: result.orderHash || Date.now().toString(),
+        const stopLossOrder = {
+          id: `SL-${Date.now()}`,
           fromToken,
           toToken,
+          fromChain,
+          toChain,
           amount,
           type: "stop-loss",
           triggerPrice: stopPrice,
+          currentPrice: currentRate.toFixed(4),
           status: "active",
           createdAt: new Date().toISOString(),
-        });
-        localStorage.setItem("stopLossOrders", JSON.stringify(orders));
+          strategy: selectedStrategy,
+        };
+        orders.push(stopLossOrder);
 
-        toast.success("Stop-loss order created! 🎉", { id: loadingToast });
+        // Emit event for dashboard update
+        window.dispatchEvent(new CustomEvent('orderCreated', { detail: stopLossOrder }));
       }
 
       if (orderType === "take-profit" || orderType === "both") {
-        toast("Take-profit orders coming soon! 🚀", {
-          id: orderType === "both" ? undefined : loadingToast,
-          icon: "🚧",
-        });
+        if (!profitPrice) {
+          toast.error("Please enter a take-profit price", { 
+            id: orderType === "both" ? undefined : loadingToast 
+          });
+          return;
+        }
+
+        const takeProfitOrder = {
+          id: `TP-${Date.now()}`,
+          fromToken,
+          toToken,
+          fromChain,
+          toChain,
+          amount,
+          type: "take-profit",
+          triggerPrice: profitPrice,
+          currentPrice: currentRate.toFixed(4),
+          status: "active",
+          createdAt: new Date().toISOString(),
+          strategy: selectedStrategy,
+        };
+        orders.push(takeProfitOrder);
+
+        // Emit event for dashboard update
+        window.dispatchEvent(new CustomEvent('orderCreated', { detail: takeProfitOrder }));
+      }
+
+      localStorage.setItem("stopLossOrders", JSON.stringify(orders));
+
+      // Show success message
+      const orderTypeText = orderType === "both" ? "OCO orders" : `${orderType} order`;
+      toast.success(`${orderTypeText} created successfully! 🎉`, { id: loadingToast });
+
+      // Show cross-chain message if applicable
+      if (fromChain !== toChain) {
+        setTimeout(() => {
+          toast.success(`Cross-chain ${fromChain} → ${toChain} order ready! 🌉`, {
+            duration: 5000,
+          });
+        }, 1000);
       }
 
       // Reset form
@@ -283,6 +313,8 @@ const OrderCreator: React.FC = () => {
       toast.error(error.message || "Failed to create order", {
         id: loadingToast,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -665,13 +697,23 @@ const OrderCreator: React.FC = () => {
           {(orderType === "stop-loss" || orderType === "both") && (
             <div className="flex items-center space-x-2">
               <span className="text-xs text-gray-400 w-20">🔴 Stop at:</span>
-              <input
-                type="number"
-                value={stopPrice}
-                onChange={(e) => setStopPrice(e.target.value)}
-                placeholder={`${(currentRate * 0.9).toFixed(4)}`}
-                className="flex-1 input-field text-xs py-1.5 border-red-500/50"
-              />
+              <div className="flex-1 relative">
+                <input
+                  type="number"
+                  value={stopPrice}
+                  onChange={(e) => setStopPrice(e.target.value)}
+                  placeholder={`${(currentRate * 0.9).toFixed(4)}`}
+                  className="w-full input-field text-xs py-1.5 border-red-500/50"
+                />
+                {!stopPrice && (
+                  <button
+                    onClick={() => setStopPrice((currentRate * 0.9).toFixed(4))}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-red-400 hover:text-red-300 bg-red-900/20 px-2 py-0.5 rounded hover:bg-red-900/40 transition-colors"
+                  >
+                    -10%
+                  </button>
+                )}
+              </div>
               <span className="text-xs text-gray-400">
                 {fromToken}/{toToken}
               </span>
@@ -681,13 +723,23 @@ const OrderCreator: React.FC = () => {
           {(orderType === "take-profit" || orderType === "both") && (
             <div className="flex items-center space-x-2">
               <span className="text-xs text-gray-400 w-20">🟢 Profit at:</span>
-              <input
-                type="number"
-                value={profitPrice}
-                onChange={(e) => setProfitPrice(e.target.value)}
-                placeholder={`${(currentRate * 1.1).toFixed(4)}`}
-                className="flex-1 input-field text-xs py-1.5 border-green-500/50"
-              />
+              <div className="flex-1 relative">
+                <input
+                  type="number"
+                  value={profitPrice}
+                  onChange={(e) => setProfitPrice(e.target.value)}
+                  placeholder={`${(currentRate * 1.1).toFixed(4)}`}
+                  className="w-full input-field text-xs py-1.5 border-green-500/50"
+                />
+                {!profitPrice && (
+                  <button
+                    onClick={() => setProfitPrice((currentRate * 1.1).toFixed(4))}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-green-400 hover:text-green-300 bg-green-900/20 px-2 py-0.5 rounded hover:bg-green-900/40 transition-colors"
+                  >
+                    +10%
+                  </button>
+                )}
+              </div>
               <span className="text-xs text-gray-400">
                 {fromToken}/{toToken}
               </span>

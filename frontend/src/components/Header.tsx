@@ -1,9 +1,10 @@
 // src/components/Header.tsx
-import React from "react";
+import React, { useState } from "react";
 import { useWallet } from "../hooks/useWallet";
 
 const Header: React.FC = () => {
-  const { address, connectWallet, isConnecting, isConnected } = useWallet();
+  const { address, connectWallet, disconnect, isConnecting, isConnected } = useWallet();
+  const [showDropdown, setShowDropdown] = useState(false);
 
   return (
     <header className="bg-gray-900 border-b border-gray-800">
@@ -26,11 +27,77 @@ const Header: React.FC = () => {
           </div>
 
           {isConnected ? (
-            <div className="flex items-center space-x-4 bg-gray-800 rounded-2xl px-5 py-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">
-                {address?.slice(0, 6)}...{address?.slice(-4)}
-              </span>
+            <div className="relative">
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center space-x-4 bg-gray-800 hover:bg-gray-700 rounded-2xl px-5 py-3 transition-colors"
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="text-left">
+                  <div className="text-sm font-medium">
+                    {address?.slice(0, 6)}...{address?.slice(-4)}
+                  </div>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-64 bg-gray-800 rounded-xl shadow-lg border border-gray-700 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-700">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                        {address?.slice(2, 4).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium">{address?.slice(0, 6)}...{address?.slice(-4)}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="py-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(address || '');
+                        setShowDropdown(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center space-x-3"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Copy Address</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        disconnect();
+                        setShowDropdown(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center space-x-3 text-red-400 hover:text-red-300"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Disconnect Wallet</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Overlay to close dropdown when clicking outside */}
+              {showDropdown && (
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowDropdown(false)}
+                ></div>
+              )}
             </div>
           ) : (
             <button

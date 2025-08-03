@@ -33,13 +33,19 @@ const OneInchDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<
     "overview" | "twap" | "protection"
   >("overview");
+  const [portfolioStats, setPortfolioStats] = useState({
+    totalValue: 15420.50,
+    usdcValue: 8500.00,
+    xlmValue: 6154.19,
+    maticValue: 766.31
+  });
 
   const [orderbookStats, setOrderbookStats] = useState<OrderbookStats>({
-    stopLossCount: 342,
-    takeProfitCount: 567,
-    totalVolume: "2.4M",
-    twapActiveCount: 89,
-    twapVolume: "450K",
+    stopLossCount: 5,
+    takeProfitCount: 3,
+    totalVolume: "45.2K",
+    twapActiveCount: 2,
+    twapVolume: "12.5K",
   });
 
   const [historyStats, setHistoryStats] = useState<HistoryStats>({
@@ -52,43 +58,43 @@ const OneInchDashboard: React.FC = () => {
 
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([
     {
-      token: "MATIC",
-      currentPrice: 0.89,
-      triggerPrice: 0.84,
+      token: "USDC/XLM",
+      currentPrice: 2.571,
+      triggerPrice: 2.314,
       type: "stop-loss",
-      percentToTrigger: -5.2,
+      percentToTrigger: -10.0,
     },
     {
-      token: "ETH",
-      currentPrice: 2150,
-      triggerPrice: 2365,
+      token: "USDC/XLM",
+      currentPrice: 2.571,
+      triggerPrice: 2.828,
       type: "take-profit",
       percentToTrigger: 10.0,
     },
     {
-      token: "1INCH",
-      currentPrice: 0.42,
-      triggerPrice: 0.4,
+      token: "USDC/XLM",
+      currentPrice: 2.571,
+      triggerPrice: 2.571,
       type: "twap",
-      percentToTrigger: -4.8,
+      percentToTrigger: 0.0,
     },
   ]);
 
   const [twapOrders] = useState([
     {
       id: 1,
-      pair: "MATIC → USDC",
-      chunks: "10/20",
-      progress: 50,
-      volume: "1000 MATIC",
-      saved: "$45",
+      pair: "USDC → XLM (Base → Stellar)",
+      chunks: "3/10",
+      progress: 30,
+      volume: "1000 USDC",
+      saved: "$12",
     },
     {
       id: 2,
-      pair: "1INCH → WETH",
+      pair: "MATIC → USDC",
       chunks: "5/10",
       progress: 50,
-      volume: "500 1INCH",
+      volume: "500 MATIC",
       saved: "$28",
     },
     {
@@ -101,16 +107,90 @@ const OneInchDashboard: React.FC = () => {
     },
   ]);
 
+  const updateStats = () => {
+    const savedOrders = localStorage.getItem("stopLossOrders");
+    if (savedOrders) {
+      const orderList = JSON.parse(savedOrders);
+      const activeOrders = orderList.filter((order: any) => order.status === 'active');
+      
+      // Update orderbook stats
+      const stopLossCount = activeOrders.filter((order: any) => order.type === 'stop-loss').length;
+      const takeProfitCount = activeOrders.filter((order: any) => order.type === 'take-profit').length;
+      const twapCount = activeOrders.filter((order: any) => order.type === 'twap').length;
+      
+      // Calculate total volume from active orders
+      let totalOrderValue = 0;
+      let twapVolume = 0;
+      
+      activeOrders.forEach((order: any) => {
+        const amount = parseFloat(order.amount || "0");
+        if (order.fromToken === 'USDC') {
+          totalOrderValue += amount;
+          if (order.type === 'twap') {
+            twapVolume += amount;
+          }
+        } else if (order.fromToken === 'XLM') {
+          const usdValue = amount * 0.3890;
+          totalOrderValue += usdValue;
+          if (order.type === 'twap') {
+            twapVolume += usdValue;
+          }
+        }
+      });
+      
+      // Update orderbook stats
+      const baseStopLoss = 5;
+      const baseTakeProfit = 3;
+      const baseTwap = 2;
+      const baseVolume = 45200; // $45.2K
+      const baseTwapVolume = 12500; // $12.5K
+      
+      setOrderbookStats({
+        stopLossCount: baseStopLoss + stopLossCount,
+        takeProfitCount: baseTakeProfit + takeProfitCount,
+        totalVolume: ((baseVolume + totalOrderValue) / 1000).toFixed(1) + "K",
+        twapActiveCount: baseTwap + twapCount,
+        twapVolume: ((baseTwapVolume + twapVolume) / 1000).toFixed(1) + "K",
+      });
+
+      // Update portfolio stats to match top stats
+      const basePortfolioValue = 15420.50;
+      const totalPortfolioValue = basePortfolioValue + totalOrderValue;
+      
+      setPortfolioStats({
+        totalValue: totalPortfolioValue,
+        usdcValue: 8500.00 + (totalOrderValue * 0.55), // Distribute new value proportionally
+        xlmValue: 6154.19 + (totalOrderValue * 0.30),
+        maticValue: 766.31 + (totalOrderValue * 0.15)
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      updateStats();
       setLoading(false);
     };
 
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000);
-    return () => clearInterval(interval);
+    
+    // Listen for new orders
+    const handleOrderCreated = () => {
+      updateStats();
+    };
+
+    window.addEventListener('orderCreated', handleOrderCreated);
+    
+    const interval = setInterval(() => {
+      updateStats();
+    }, 30000);
+    
+    return () => {
+      window.removeEventListener('orderCreated', handleOrderCreated);
+      clearInterval(interval);
+    };
   }, [address]);
 
   if (loading && !gasPrice) {
@@ -160,19 +240,6 @@ const OneInchDashboard: React.FC = () => {
           )}
         </button>
         <button
-          onClick={() => setActiveSection("twap")}
-          className={`pb-2 px-1 text-sm font-medium transition-colors relative ${
-            activeSection === "twap"
-              ? "text-white"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          TWAP Analytics
-          {activeSection === "twap" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500"></div>
-          )}
-        </button>
-        <button
           onClick={() => setActiveSection("protection")}
           className={`pb-2 px-1 text-sm font-medium transition-colors relative ${
             activeSection === "protection"
@@ -183,6 +250,19 @@ const OneInchDashboard: React.FC = () => {
           Protection Stats
           {activeSection === "protection" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-500"></div>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveSection("twap")}
+          className={`pb-2 px-1 text-sm font-medium transition-colors relative ${
+            activeSection === "twap"
+              ? "text-white"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          TWAP Analytics
+          {activeSection === "twap" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500"></div>
           )}
         </button>
       </div>
@@ -206,33 +286,49 @@ const OneInchDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold">
-                      M
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
+                      U
                     </div>
                     <div>
-                      <p className="font-semibold">MATIC</p>
-                      <p className="text-xs text-gray-400">1,234.56</p>
+                      <p className="font-semibold">USDC (Base)</p>
+                      <p className="text-xs text-gray-400">{portfolioStats.usdcValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">$1,098.76</p>
-                    <p className="text-xs text-green-400">+2.4%</p>
+                    <p className="font-semibold">${portfolioStats.usdcValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xs text-gray-400">0.0%</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
-                      U
+                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-xs font-bold">
+                      X
                     </div>
                     <div>
-                      <p className="font-semibold">USDC</p>
-                      <p className="text-xs text-gray-400">2,500.00</p>
+                      <p className="font-semibold">XLM (Stellar)</p>
+                      <p className="text-xs text-gray-400">{(portfolioStats.xlmValue / 0.3890).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">$2,500.00</p>
-                    <p className="text-xs text-gray-400">0.0%</p>
+                    <p className="font-semibold">${portfolioStats.xlmValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xs text-green-400">+4.2%</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold">
+                      M
+                    </div>
+                    <div>
+                      <p className="font-semibold">MATIC</p>
+                      <p className="text-xs text-gray-400">{(portfolioStats.maticValue / 0.89).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${portfolioStats.maticValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-xs text-green-400">+2.4%</p>
                   </div>
                 </div>
               </div>
@@ -240,7 +336,7 @@ const OneInchDashboard: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-gray-700">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total Portfolio</span>
-                  <span className="text-xl font-bold">$3,598.76</span>
+                  <span className="text-xl font-bold">${portfolioStats.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
@@ -258,21 +354,42 @@ const OneInchDashboard: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Stop-Loss</span>
-                  <span className="text-2xl font-bold text-red-400">
-                    {orderbookStats.stopLossCount}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-red-400">
+                      {orderbookStats.stopLossCount}
+                    </span>
+                    {orderbookStats.stopLossCount > 5 && (
+                      <span className="text-xs bg-red-900/30 text-red-400 px-2 py-1 rounded-full animate-pulse">
+                        +{orderbookStats.stopLossCount - 5} new
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">Take-Profit</span>
-                  <span className="text-2xl font-bold text-green-400">
-                    {orderbookStats.takeProfitCount}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-green-400">
+                      {orderbookStats.takeProfitCount}
+                    </span>
+                    {orderbookStats.takeProfitCount > 3 && (
+                      <span className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded-full animate-pulse">
+                        +{orderbookStats.takeProfitCount - 3} new
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400">TWAP Active</span>
-                  <span className="text-2xl font-bold text-purple-400">
-                    {orderbookStats.twapActiveCount}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-purple-400">
+                      {orderbookStats.twapActiveCount}
+                    </span>
+                    {orderbookStats.twapActiveCount > 2 && (
+                      <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded-full animate-pulse">
+                        +{orderbookStats.twapActiveCount - 2} new
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="pt-3 border-t border-gray-700">
                   <div className="flex justify-between items-center">
@@ -842,10 +959,10 @@ const OneInchDashboard: React.FC = () => {
               <h3 className="text-lg font-bold mb-4">Top Protected Pairs</h3>
               <div className="space-y-2">
                 {[
+                  { pair: "USDC/XLM (Base→Stellar)", orders: 23, volume: "$12,450" },
                   { pair: "MATIC/USDC", orders: 145, volume: "$45,230" },
                   { pair: "1INCH/USDC", orders: 89, volume: "$23,450" },
                   { pair: "WETH/USDC", orders: 67, volume: "$125,000" },
-                  { pair: "WBTC/USDC", orders: 45, volume: "$250,000" },
                 ].map((item, i) => (
                   <div
                     key={i}

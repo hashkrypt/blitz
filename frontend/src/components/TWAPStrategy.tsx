@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useWallet } from "../hooks/useWallet";
-import { TWAPService } from "../services/TWAPService";
 
 const TWAPStrategy: React.FC = () => {
   const { signer, isConnected } = useWallet();
-  const [token, setToken] = useState("WMATIC");
+  const [fromChain, setFromChain] = useState("base");
+  const [toChain, setToChain] = useState("stellar");
+  const [fromToken, setFromToken] = useState("USDC");
+  const [toToken, setToToken] = useState("XLM");
   const [totalAmount, setTotalAmount] = useState("");
   const [chunks, setChunks] = useState("10");
   const [duration, setDuration] = useState("4"); // hours
@@ -15,7 +17,9 @@ const TWAPStrategy: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
 
   const tokens = [
-    { symbol: "WMATIC", name: "Polygon", price: 0.89 },
+    { symbol: "USDC", name: "USD Coin", price: 1.0 },
+    { symbol: "XLM", name: "Stellar Lumens", price: 0.3890 },
+    { symbol: "MATIC", name: "Polygon", price: 0.89 },
     { symbol: "ETH", name: "Ethereum", price: 2150 },
     { symbol: "1INCH", name: "1inch", price: 0.42 },
     { symbol: "LINK", name: "Chainlink", price: 14.5 },
@@ -51,30 +55,51 @@ const TWAPStrategy: React.FC = () => {
     const loadingToast = toast.loading("Creating TWAP order...");
 
     try {
-      const twapService = new TWAPService();
-      const result = await twapService.createTWAPOrder({
-        signer,
-        fromToken: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", // WMATIC
-        toToken: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC
+      // For demo purposes, create fake TWAP order
+      const twapOrder = {
+        id: `TWAP-${Date.now()}`,
+        fromToken,
+        toToken,
+        fromChain,
+        toChain,
         totalAmount,
         chunks: parseInt(chunks),
+        executedChunks: 0,
         durationHours: parseFloat(duration),
-        startDelay: parseInt(startDelay),
-      });
-
-      // Save to localStorage
-      const orders = JSON.parse(localStorage.getItem("twapOrders") || "[]");
-      orders.push({
-        ...result,
-        tokenSymbol: token,
+        intervalSeconds: (parseFloat(duration) * 3600) / parseInt(chunks),
+        startTime: Date.now() / 1000 + parseInt(startDelay) * 60,
+        status: "active",
+        type: "twap",
+        strategy: "twap",
         createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem("twapOrders", JSON.stringify(orders));
+        chunkSize: (parseFloat(totalAmount) / parseInt(chunks)).toFixed(4),
+      };
+
+      // Save to both TWAP orders and general orders
+      const twapOrders = JSON.parse(localStorage.getItem("twapOrders") || "[]");
+      twapOrders.push(twapOrder);
+      localStorage.setItem("twapOrders", JSON.stringify(twapOrders));
+
+      const allOrders = JSON.parse(localStorage.getItem("stopLossOrders") || "[]");
+      allOrders.push(twapOrder);
+      localStorage.setItem("stopLossOrders", JSON.stringify(allOrders));
+
+      // Emit event for dashboard update
+      window.dispatchEvent(new CustomEvent('orderCreated', { detail: twapOrder }));
 
       toast.success(
-        `TWAP order created! ${chunks} orders over ${duration} hours`,
+        `TWAP order created! ${chunks} chunks over ${duration} hours 📈`,
         { id: loadingToast, duration: 5000 }
       );
+
+      // Show cross-chain message if applicable
+      if (fromChain !== toChain) {
+        setTimeout(() => {
+          toast.success(`Cross-chain TWAP: ${fromChain} → ${toChain} 🌉`, {
+            duration: 5000,
+          });
+        }, 1000);
+      }
 
       // Reset form
       setTotalAmount("");
@@ -102,21 +127,72 @@ const TWAPStrategy: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left side - Configuration */}
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Token to Buy
-            </label>
-            <select
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              className="input-field"
-            >
-              {tokens.map((t) => (
-                <option key={t.symbol} value={t.symbol}>
-                  {t.symbol} - {t.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                From Chain
+              </label>
+              <select
+                value={fromChain}
+                onChange={(e) => setFromChain(e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="base">🔵 Base</option>
+                <option value="ethereum">Ξ Ethereum</option>
+                <option value="polygon">🟣 Polygon</option>
+                <option value="arbitrum">🔵 Arbitrum</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                To Chain
+              </label>
+              <select
+                value={toChain}
+                onChange={(e) => setToChain(e.target.value)}
+                className="input-field text-sm"
+              >
+                <option value="stellar">✨ Stellar</option>
+                <option value="ethereum">Ξ Ethereum</option>
+                <option value="polygon">🟣 Polygon</option>
+                <option value="arbitrum">🔵 Arbitrum</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                From Token
+              </label>
+              <select
+                value={fromToken}
+                onChange={(e) => setFromToken(e.target.value)}
+                className="input-field"
+              >
+                {tokens.map((t) => (
+                  <option key={t.symbol} value={t.symbol}>
+                    {t.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                To Token
+              </label>
+              <select
+                value={toToken}
+                onChange={(e) => setToToken(e.target.value)}
+                className="input-field"
+              >
+                {tokens.map((t) => (
+                  <option key={t.symbol} value={t.symbol}>
+                    {t.symbol}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
@@ -193,14 +269,34 @@ const TWAPStrategy: React.FC = () => {
 
         {/* Right side - Preview */}
         <div className="bg-gray-800 rounded-2xl p-6">
-          <h3 className="font-bold mb-4">Order Preview</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold">Order Preview</h3>
+            {fromChain !== toChain && (
+              <span className="text-xs bg-yellow-900/30 text-yellow-400 px-2 py-1 rounded-full">
+                ⚡ Cross-chain
+              </span>
+            )}
+          </div>
 
           {preview ? (
             <div className="space-y-4">
+              <div className="p-3 bg-gray-900 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Trading Pair</span>
+                  <span className="font-semibold">
+                    {fromToken} → {toToken}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <span>{fromChain} → {toChain}</span>
+                  <span>TWAP Strategy</span>
+                </div>
+              </div>
+
               <div className="flex justify-between items-center p-3 bg-gray-900 rounded-lg">
                 <span className="text-sm text-gray-400">Chunk Size</span>
                 <span className="font-semibold">
-                  {preview.chunkSize} {token}
+                  {preview.chunkSize} {fromToken}
                 </span>
               </div>
 
@@ -313,32 +409,61 @@ const TWAPOrdersList: React.FC = () => {
   return (
     <div className="space-y-3">
       {orders.map((order, index) => (
-        <div key={order.id} className="bg-gray-800 rounded-xl p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-semibold">
-                {order.totalAmount} {order.tokenSymbol}
-              </p>
-              <p className="text-sm text-gray-400">
-                {order.executedChunks}/{order.chunks} executed
-              </p>
+        <div key={order.id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-lg">📈</span>
+                <span className="font-semibold">
+                  {order.totalAmount} {order.fromToken} → {order.toToken}
+                </span>
+                <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded-full">
+                  TWAP
+                </span>
+              </div>
+              
+              {order.fromChain && order.toChain && (
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-xs text-gray-500">Route:</span>
+                  <span className="text-xs text-blue-400 capitalize">{order.fromChain}</span>
+                  <span className="text-xs text-gray-500">→</span>
+                  <span className="text-xs text-green-400 capitalize">{order.toChain}</span>
+                  {order.fromChain !== order.toChain && (
+                    <span className="text-xs text-yellow-400">⚡ Cross-chain</span>
+                  )}
+                </div>
+              )}
+
+              <div className="text-sm text-gray-400">
+                {order.executedChunks || 0}/{order.chunks} chunks executed
+              </div>
             </div>
+            
             <div className="text-right">
               <p className="text-sm text-purple-400">
-                Every {(order.intervalSeconds / 60).toFixed(0)} min
+                Every {Math.round((order.intervalSeconds || 0) / 60)} min
               </p>
               <p className="text-xs text-gray-500">
-                {new Date(order.startTime * 1000).toLocaleTimeString()}
+                {order.startTime ? new Date(order.startTime * 1000).toLocaleTimeString() : 'Starting soon'}
               </p>
             </div>
           </div>
-          <div className="mt-3 w-full bg-gray-700 rounded-full h-2">
+          
+          <div className="w-full bg-gray-700 rounded-full h-2">
             <div
               className="bg-purple-500 h-2 rounded-full transition-all"
               style={{
-                width: `${(order.executedChunks / order.chunks) * 100}%`,
+                width: `${((order.executedChunks || 0) / order.chunks) * 100}%`,
               }}
             ></div>
+          </div>
+          
+          <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+            <span>ID: {order.id}</span>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <span className="text-purple-400">Running</span>
+            </div>
           </div>
         </div>
       ))}
